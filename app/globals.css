@@ -269,6 +269,10 @@ ul {
   width: fit-content;
 }
 
+.textLeft {
+  text-align: left;
+}
+
 .buttonReset {
   cursor: pointer;
 }
@@ -392,6 +396,15 @@ ul {
   margin: 0;
 }
 
+.songLink {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.songLink:hover {
+  color: var(--purple);
+}
+
 .songFooterMeta,
 .memberRow {
   display: flex;
@@ -424,6 +437,126 @@ ul {
   border-bottom: 0;
 }
 
+.songDetailGrid,
+.songLowerGrid {
+  align-items: start;
+}
+
+.currentVersionCard,
+.timelineItem,
+.commentCard {
+  padding: 1rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.currentVersionSummary,
+.commentCard p,
+.timelineMeta {
+  line-height: 1.6;
+}
+
+.versionBadgeRow,
+.commentHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.versionPill {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+}
+
+.metaPairGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.metaBlock {
+  padding: 1rem;
+}
+
+.reviewActions,
+.versionTimeline,
+.commentList {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.reviewButton {
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  text-align: left;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.reviewButtonActive {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.reviewButton.approve {
+  border-color: rgba(129, 244, 191, 0.22);
+}
+
+.reviewButton.request {
+  border-color: rgba(255, 209, 102, 0.25);
+}
+
+.reviewButton.pending {
+  border-color: rgba(177, 151, 252, 0.24);
+}
+
+.timelineCurrent {
+  border-color: rgba(177, 151, 252, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(177, 151, 252, 0.12);
+}
+
+.timelineMeta,
+.commentHeader span,
+.commentTimestamp {
+  color: var(--muted);
+}
+
+.commentTimestamp {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+}
+
+.uploadComposer {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.fieldLabel {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.fieldInput {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+
+.fieldTextarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
 @media (min-width: 760px) {
   .hero {
     grid-template-columns: 1.45fr 0.85fr;
@@ -451,6 +584,10 @@ ul {
   .directoryGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .metaPairGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 759px) {
@@ -472,7 +609,9 @@ ul {
   .appHeader,
   .appHeaderActions,
   .songFooterMeta,
-  .memberRow {
+  .memberRow,
+  .versionBadgeRow,
+  .commentHeader {
     flex-direction: column;
     align-items: flex-start;
   }

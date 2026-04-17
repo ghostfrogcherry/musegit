@@ -35,22 +35,27 @@ export default async function WorkspacePage({ params }: PageProps) {
             <h2>Song board</h2>
             <span>Mixes, review state, and open discussion</span>
           </div>
-          <div className="songItems">
-            {workspace.songs.map((song) => (
-              <article className="songItem" key={song.name}>
-                <div className="songTopRow">
-                  <h3>{song.name}</h3>
-                  <span className={`status status-${song.status.toLowerCase().replace(/\s+/g, "-")}`}>{song.status}</span>
-                </div>
-                <p className="versionName">{song.version}</p>
-                <p className="songNote">{song.note}</p>
-                <div className="songFooterMeta">
-                  <span>{song.comments} comments</span>
-                  <span>Updated {song.updatedAt}</span>
-                </div>
-              </article>
-            ))}
-          </div>
+            <div className="songItems">
+              {workspace.songs.map((song) => (
+                <article className="songItem" key={song.name}>
+                  <div className="songTopRow">
+                    <Link className="songLink" href={`/app/bands/${workspace.slug}/songs/${song.slug}`}>
+                      {song.name}
+                    </Link>
+                    <span className={`status status-${song.status.toLowerCase().replace(/\s+/g, "-")}`}>{song.status}</span>
+                  </div>
+                  <p className="versionName">{song.version}</p>
+                  <p className="songNote">{song.note}</p>
+                  <div className="songFooterMeta">
+                    <span>{song.comments} comments</span>
+                    <span>Updated {song.updatedAt}</span>
+                  </div>
+                  <Link className="secondaryButton inlineButton topSpace" href={`/app/bands/${workspace.slug}/songs/${song.slug}`}>
+                    Open song review
+                  </Link>
+                </article>
+              ))}
+            </div>
         </article>
 
         <aside className="stackColumn">
