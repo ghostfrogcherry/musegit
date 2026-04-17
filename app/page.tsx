@@ -23,11 +23,11 @@ export default function HomePage() {
     <main className="shell">
       <section className="hero panel">
         <div>
-          <p className="eyebrow">Private band collaboration, web-only first</p>
-          <h1>Keep songs, mixes, and review decisions in one place.</h1>
+<p className="eyebrow">Private band collaboration, web-first</p>
+          <h1>Keep songs, mixes, and reviews in one place.</h1>
           <p className="lede">
-            musegit is a focused workspace for band members who need versioned music assets, clear feedback, and a
-            fast answer to one question: what is the current working mix?
+            ChuneUp is a playful workspace for bands to track song versions, share feedback,
+            and never ask "which mix is final?" again.
           </p>
           <div className="ctaRow">
             <Link className="primaryButton" href="/sign-in">Enter private app</Link>

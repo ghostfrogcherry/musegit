@@ -2,7 +2,7 @@
 
 ## Product
 
-`musegit` is a private web app for indie bands and remote collaborators to manage songs, mixes, and version history in one place.
+`ChuneUp` is a private web app for indie bands and remote collaborators to manage songs, mixes, and version history in one place.
 
 ## Problem
 
@@ -71,7 +71,7 @@ Know which version of a song is current, what changed, and who approved it.
 
 ## MVP Differentiator
 
-`musegit` should feel simpler than a shared folder and clearer than a chat thread.
+`ChuneUp` should feel simpler than a shared folder and clearer than a chat thread.
 
 ## Initial Technical Direction
 

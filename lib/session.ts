@@ -1,1 +1,1 @@
-export const sessionCookie = "musegit_session";
+export const sessionCookie = "chuneup_session";

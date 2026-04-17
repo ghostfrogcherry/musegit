@@ -1,8 +1,8 @@
-# musegit
+# ChuneUp
 
-Private collaboration for indie bands and remote music projects.
+Private band collaboration for indie bands and remote music projects.
 
-`musegit` is a web-first workspace for songs, mixes, and review comments. The initial product focuses on a simple problem: helping collaborators know which file is current, what changed, and whether a version is approved.
+**ChuneUp** is a playful workspace for bands to track song versions, share feedback, and never ask "which mix is final?" again.
 
 ## MVP Focus
 

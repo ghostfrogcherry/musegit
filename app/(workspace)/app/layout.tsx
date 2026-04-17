@@ -10,8 +10,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <div className="appShell">
       <header className="appHeader">
         <div>
-          <Link className="brandLink" href="/app">musegit</Link>
-          <p className="appSubhead">Private workspaces for bands, songs, mixes, and review decisions.</p>
+          <Link className="brandLink" href="/app">ChuneUp</Link>
+          <p className="appSubhead">Private band workspaces for songs, mixes, and reviews.</p>
         </div>
         <div className="appHeaderActions">
           <div className="userChip panel softPanel">

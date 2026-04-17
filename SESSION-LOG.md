@@ -1,4 +1,4 @@
-# musegit Session Log
+# ChuneUp Session Log
 
 ## Date
 Started during this session.

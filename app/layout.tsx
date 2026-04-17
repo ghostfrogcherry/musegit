@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "musegit",
-  description: "Private collaboration for indie bands and remote music projects."
+  title: "ChuneUp",
+  description: "Private band collaboration for songs, mixes, and review decisions."
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
