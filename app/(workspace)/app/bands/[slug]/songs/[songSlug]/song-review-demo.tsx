@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { Account, ReviewState, Song, Workspace } from "@/lib/domain";
+import { WaveformPlayer } from "./waveform-player";
 
 type SongReviewDemoProps = {
   currentUser: Account;
@@ -37,6 +38,22 @@ function parseTimestamp(input: string) {
   }
 
   return undefined;
+}
+
+function parseDurationToSeconds(duration: string) {
+  if (!duration) return 180;
+
+  const parts = duration.split(":").map(Number);
+
+  if (parts.length === 2 && !parts.some(Number.isNaN)) {
+    return parts[0] * 60 + parts[1];
+  }
+
+  if (parts.length === 1 && !Number.isNaN(parts[0])) {
+    return parts[0];
+  }
+
+  return 180;
 }
 
 export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoProps) {
@@ -211,7 +228,11 @@ export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoP
             </div>
             <p className="currentVersionSummary">{currentVersion.summary}</p>
             {currentVersion.audioUrl ? (
-              <audio className="audioPlayer topSpace" controls ref={audioRef} src={currentVersion.audioUrl} />
+              <WaveformPlayer
+                audioSrc={currentVersion.audioUrl}
+                durationSeconds={parseDurationToSeconds(currentVersion.duration)}
+                comments={currentVersion.comments}
+              />
             ) : (
               <p className="songNote topSpace">No audio file attached to this version yet. Upload a new pass to add playback.</p>
             )}
