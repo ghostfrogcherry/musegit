@@ -1,110 +1,186 @@
 "use client";
 
-import { useState } from "react";
-import type { ReviewState, Song, Workspace } from "@/lib/mock-data";
-import { demoUser } from "@/lib/mock-data";
+import { useRef, useState } from "react";
+import type { Account, ReviewState, Song, Workspace } from "@/lib/domain";
 
 type SongReviewDemoProps = {
+  currentUser: Account;
   workspace: Workspace;
   song: Song;
 };
 
 type UploadDraft = {
-  fileName: string;
   summary: string;
-  duration: string;
 };
 
 function statusClassName(status: ReviewState) {
   return `status status-${status.toLowerCase().replace(/\s+/g, "-")}`;
 }
 
-function nextVersionId(versions: Song["versions"]) {
-  return `v${versions.length + 1}-demo-${Date.now()}`;
+function parseTimestamp(input: string) {
+  if (!input.trim()) {
+    return undefined;
+  }
+
+  const parts = input.split(":").map((part) => Number(part));
+
+  if (parts.some((part) => Number.isNaN(part))) {
+    return undefined;
+  }
+
+  if (parts.length === 1) {
+    return parts[0];
+  }
+
+  if (parts.length === 2) {
+    return parts[0] * 60 + parts[1];
+  }
+
+  return undefined;
 }
 
-function inferNextFileName(song: Song) {
-  const latest = song.version.match(/v(\d+)/i);
-  const nextNumber = latest ? Number(latest[1]) + 1 : song.versions.length + 1;
-  const extension = song.version.endsWith(".wav") ? "wav" : "mp3";
-  return `mix-v${nextNumber}.${extension}`;
-}
-
-export function SongReviewDemo({ workspace, song }: SongReviewDemoProps) {
+export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoProps) {
   const [versions, setVersions] = useState(song.versions);
+  const [latestVersionId, setLatestVersionId] = useState(song.latestVersionId);
   const [selectedVersionId, setSelectedVersionId] = useState(song.latestVersionId);
   const [songStatus, setSongStatus] = useState<ReviewState>(song.status);
   const [songVersion, setSongVersion] = useState(song.version);
   const [songUpdatedAt, setSongUpdatedAt] = useState(song.updatedAt);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [commentBody, setCommentBody] = useState("");
+  const [commentTimestamp, setCommentTimestamp] = useState("");
+  const [commentError, setCommentError] = useState("");
+  const [commentPending, setCommentPending] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadPending, setUploadPending] = useState(false);
+  const [statusPending, setStatusPending] = useState(false);
   const [uploadDraft, setUploadDraft] = useState<UploadDraft>({
-    fileName: inferNextFileName(song),
-    summary: "Tightened low-end, nudged lead vocal forward, and cleaned the bridge transition.",
-    duration: song.versions[0]?.duration ?? "4:00"
+    summary: "Tightened low-end, nudged lead vocal forward, and cleaned the bridge transition."
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const currentVersion = versions.find((version) => version.id === selectedVersionId) ?? versions[0];
   const commentCount = versions.reduce((count, version) => count + version.comments.length, 0);
 
-  function applyReviewState(nextState: ReviewState) {
-    setSongStatus(nextState);
-    setSongUpdatedAt("just now");
-    setVersions((current) =>
-      current.map((version) =>
-        version.id === selectedVersionId
-          ? {
-              ...version,
-              status: nextState
-            }
-          : version
-      )
-    );
-  }
+  async function applyReviewState(nextState: ReviewState) {
+    setStatusPending(true);
 
-  function handleDraftChange(field: keyof UploadDraft, value: string) {
-    setUploadDraft((current) => ({
-      ...current,
-      [field]: value
-    }));
-  }
+    const response = await fetch(`/api/versions/${selectedVersionId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: nextState })
+    });
 
-  function addDemoVersion() {
-    const trimmedName = uploadDraft.fileName.trim();
-    const trimmedSummary = uploadDraft.summary.trim();
-    const trimmedDuration = uploadDraft.duration.trim();
+    setStatusPending(false);
 
-    if (!trimmedName || !trimmedSummary || !trimmedDuration) {
+    if (!response.ok) {
       return;
     }
 
-    const newVersion = {
-      id: nextVersionId(versions),
-      fileName: trimmedName,
-      uploadedBy: demoUser.name,
-      uploadedAt: "just now",
-      status: "Pending review" as ReviewState,
-      summary: trimmedSummary,
-      duration: trimmedDuration,
-      comments: [
-        {
-          author: demoUser.name,
-          postedAt: "just now",
-          body: "Uploaded this demo pass for review. Focus on balance, vocal clarity, and whether the transition lands."
-        }
-      ]
-    };
+    const version = await response.json();
+    if (selectedVersionId === latestVersionId) {
+      setSongStatus(nextState);
+    }
+    setSongUpdatedAt("just now");
+    setVersions((current) => current.map((entry) => (entry.id === selectedVersionId ? version : entry)));
+  }
 
+  async function addComment() {
+    const trimmedBody = commentBody.trim();
+
+    if (!trimmedBody) {
+      setCommentError("Comment text is required.");
+      return;
+    }
+
+    setCommentPending(true);
+    setCommentError("");
+
+    const response = await fetch(`/api/versions/${selectedVersionId}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        body: trimmedBody,
+        timestampSeconds: parseTimestamp(commentTimestamp)
+      })
+    });
+
+    setCommentPending(false);
+
+    if (!response.ok) {
+      setCommentError("Could not save the comment.");
+      return;
+    }
+
+    const comment = await response.json();
+
+    setVersions((current) =>
+      current.map((version) =>
+        version.id === selectedVersionId
+          ? { ...version, comments: [comment, ...version.comments] }
+          : version
+      )
+    );
+    setCommentBody("");
+    setCommentTimestamp("");
+  }
+
+  async function addVersion() {
+    const trimmedSummary = uploadDraft.summary.trim();
+    const file = fileInputRef.current?.files?.[0];
+
+    if (!file || !trimmedSummary) {
+      setUploadError("Select an audio file and add a short summary.");
+      return;
+    }
+
+    setUploadPending(true);
+    setUploadError("");
+
+    const formData = new FormData();
+    formData.set("songId", String(song.id));
+    formData.set("summary", trimmedSummary);
+    formData.set("audio", file);
+
+    const response = await fetch(`/api/songs/${song.id}/versions`, {
+      method: "POST",
+      body: formData
+    });
+
+    setUploadPending(false);
+
+    if (!response.ok) {
+      setUploadError("Could not upload the audio file.");
+      return;
+    }
+
+    const newVersion = await response.json();
     setVersions((current) => [newVersion, ...current]);
+    setLatestVersionId(newVersion.id);
     setSelectedVersionId(newVersion.id);
     setSongStatus("Pending review");
     setSongVersion(newVersion.fileName);
     setSongUpdatedAt("just now");
     setComposerOpen(false);
-    setUploadDraft({
-      fileName: inferNextFileName({ ...song, version: newVersion.fileName, versions: [newVersion, ...versions] }),
-      summary: uploadDraft.summary,
-      duration: trimmedDuration
-    });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function jumpToTimestamp(timestamp?: string) {
+    if (!timestamp || !audioRef.current) {
+      return;
+    }
+
+    const seconds = parseTimestamp(timestamp);
+
+    if (seconds === undefined) {
+      return;
+    }
+
+    audioRef.current.currentTime = seconds;
+    void audioRef.current.play();
   }
 
   return (
@@ -134,6 +210,11 @@ export function SongReviewDemo({ workspace, song }: SongReviewDemoProps) {
               <span className={statusClassName(currentVersion.status)}>{currentVersion.status}</span>
             </div>
             <p className="currentVersionSummary">{currentVersion.summary}</p>
+            {currentVersion.audioUrl ? (
+              <audio className="audioPlayer topSpace" controls ref={audioRef} src={currentVersion.audioUrl} />
+            ) : (
+              <p className="songNote topSpace">No audio file attached to this version yet. Upload a new pass to add playback.</p>
+            )}
             <div className="metaPairGrid topSpace">
               <div className="metaBlock softPanel panel">
                 <p className="authLabel">Uploaded by</p>
@@ -154,11 +235,11 @@ export function SongReviewDemo({ workspace, song }: SongReviewDemoProps) {
               <span>What the band should do next</span>
             </div>
             <div className="reviewActions">
-              <button className={`reviewButton approve buttonReset${songStatus === "Approved" ? " reviewButtonActive" : ""}`} onClick={() => applyReviewState("Approved")} type="button">Approve version</button>
-              <button className={`reviewButton request buttonReset${songStatus === "Changes requested" ? " reviewButtonActive" : ""}`} onClick={() => applyReviewState("Changes requested")} type="button">Request changes</button>
-              <button className={`reviewButton pending buttonReset${songStatus === "Pending review" ? " reviewButtonActive" : ""}`} onClick={() => applyReviewState("Pending review")} type="button">Leave pending</button>
+              <button className={`reviewButton approve buttonReset${songStatus === "Approved" ? " reviewButtonActive" : ""}`} disabled={statusPending} onClick={() => applyReviewState("Approved")} type="button">Approve version</button>
+              <button className={`reviewButton request buttonReset${songStatus === "Changes requested" ? " reviewButtonActive" : ""}`} disabled={statusPending} onClick={() => applyReviewState("Changes requested")} type="button">Request changes</button>
+              <button className={`reviewButton pending buttonReset${songStatus === "Pending review" ? " reviewButtonActive" : ""}`} disabled={statusPending} onClick={() => applyReviewState("Pending review")} type="button">Leave pending</button>
             </div>
-            <p className="songNote topSpace">Current demo state updates locally so you can test the review workflow without a backend yet.</p>
+            <p className="songNote topSpace">Review changes now persist to the local SQLite store.</p>
           </article>
 
           <article className="panel detailPanel">
@@ -170,16 +251,15 @@ export function SongReviewDemo({ workspace, song }: SongReviewDemoProps) {
             </div>
             {composerOpen ? (
               <div className="uploadComposer">
-                <label className="fieldLabel" htmlFor="fileName">File name</label>
-                <input className="fieldInput" id="fileName" onChange={(event) => handleDraftChange("fileName", event.target.value)} value={uploadDraft.fileName} />
+                <label className="fieldLabel" htmlFor="audioFile">Audio file</label>
+                <input accept="audio/*" className="fieldInput" id="audioFile" ref={fileInputRef} type="file" />
                 <label className="fieldLabel" htmlFor="summary">What changed</label>
-                <textarea className="fieldInput fieldTextarea" id="summary" onChange={(event) => handleDraftChange("summary", event.target.value)} value={uploadDraft.summary} />
-                <label className="fieldLabel" htmlFor="duration">Duration</label>
-                <input className="fieldInput" id="duration" onChange={(event) => handleDraftChange("duration", event.target.value)} value={uploadDraft.duration} />
-                <button className="primaryButton buttonReset inlineButton" onClick={addDemoVersion} type="button">Add demo upload</button>
+                <textarea className="fieldInput fieldTextarea" id="summary" onChange={(event) => setUploadDraft({ summary: event.target.value })} value={uploadDraft.summary} />
+                {uploadError ? <p className="formError">{uploadError}</p> : null}
+                <button className="primaryButton buttonReset inlineButton" disabled={uploadPending} onClick={addVersion} type="button">{uploadPending ? "Uploading..." : "Upload audio version"}</button>
               </div>
             ) : (
-              <p className="songNote">Create a new demo version locally to preview how the timeline and review surface react.</p>
+              <p className="songNote">Upload an actual audio file to create a playable version inside the song thread.</p>
             )}
           </article>
 
@@ -189,7 +269,7 @@ export function SongReviewDemo({ workspace, song }: SongReviewDemoProps) {
               <span>Back to the band board</span>
             </div>
             <a className="secondaryButton inlineButton" href={`/app/bands/${workspace.slug}`}>Back to {workspace.name}</a>
-            <p className="songNote topSpace">Updated {songUpdatedAt}</p>
+            <p className="songNote topSpace">Signed in as {currentUser.name}. Updated {songUpdatedAt}</p>
           </article>
         </aside>
       </section>
@@ -198,7 +278,7 @@ export function SongReviewDemo({ workspace, song }: SongReviewDemoProps) {
         <article className="panel detailPanel">
           <div className="sectionHeading">
             <h2>Version timeline</h2>
-            <span>Select a revision to inspect its notes and comments</span>
+            <span>Select a revision to inspect its notes, comments, and audio</span>
           </div>
           <div className="versionTimeline">
             {versions.map((version) => (
@@ -211,7 +291,7 @@ export function SongReviewDemo({ workspace, song }: SongReviewDemoProps) {
                   <span className={statusClassName(version.status)}>{version.status}</span>
                 </div>
                 <p className="songNote">{version.summary}</p>
-                <p className="timelineMeta">{version.duration} · {version.comments.length} comments</p>
+                <p className="timelineMeta">{version.duration} · {version.comments.length} comments · {version.audioUrl ? "audio ready" : "no audio"}</p>
               </button>
             ))}
           </div>
@@ -222,14 +302,26 @@ export function SongReviewDemo({ workspace, song }: SongReviewDemoProps) {
             <h2>Comment thread</h2>
             <span>Feedback pinned to {currentVersion.fileName}</span>
           </div>
-          <div className="commentList">
-            {currentVersion.comments.map((comment, index) => (
-              <article className="commentCard" key={`${comment.author}-${index}`}>
+          <div className="uploadComposer">
+            <label className="fieldLabel" htmlFor="commentBody">New comment</label>
+            <textarea className="fieldInput fieldTextarea" id="commentBody" onChange={(event) => setCommentBody(event.target.value)} value={commentBody} />
+            <label className="fieldLabel" htmlFor="commentTimestamp">Timestamp (optional, `mm:ss`)</label>
+            <input className="fieldInput" id="commentTimestamp" onChange={(event) => setCommentTimestamp(event.target.value)} placeholder="01:22" value={commentTimestamp} />
+            {commentError ? <p className="formError">{commentError}</p> : null}
+            <button className="primaryButton buttonReset inlineButton" disabled={commentPending} onClick={addComment} type="button">{commentPending ? "Posting..." : "Post comment"}</button>
+          </div>
+          <div className="commentList topSpace">
+            {currentVersion.comments.map((comment) => (
+              <article className="commentCard" key={comment.id}>
                 <div className="commentHeader">
                   <strong>{comment.author}</strong>
                   <span>{comment.postedAt}</span>
                 </div>
-                {comment.timestamp ? <p className="commentTimestamp">At {comment.timestamp}</p> : null}
+                {comment.timestamp ? (
+                  <button className="timestampButton buttonReset" onClick={() => jumpToTimestamp(comment.timestamp)} type="button">
+                    Jump to {comment.timestamp}
+                  </button>
+                ) : null}
                 <p>{comment.body}</p>
               </article>
             ))}

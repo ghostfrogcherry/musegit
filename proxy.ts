@@ -1,7 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-
-const sessionCookie = "musegit_session";
+import { sessionCookie } from "@/lib/session";
 
 export function proxy(request: NextRequest) {
   const isSignedIn = Boolean(request.cookies.get(sessionCookie)?.value);

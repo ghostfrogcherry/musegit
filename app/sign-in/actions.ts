@@ -2,12 +2,11 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-
-const sessionCookie = "musegit_session";
+import { sessionCookie } from "@/lib/session";
 
 export async function signIn() {
   const cookieStore = await cookies();
-  cookieStore.set(sessionCookie, "demo-user", {
+  cookieStore.set(sessionCookie, "ghostfrogcherry", {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

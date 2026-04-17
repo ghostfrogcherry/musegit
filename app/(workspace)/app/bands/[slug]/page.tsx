@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getWorkspace } from "@/lib/mock-data";
+import { getWorkspace } from "@/lib/data";
 
 type PageProps = {
   params: Promise<{ slug: string }>;

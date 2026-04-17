@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { workspaces } from "@/lib/mock-data";
+import { listWorkspaces } from "@/lib/data";
 
 const workflow = [
   {
@@ -16,9 +16,9 @@ const workflow = [
   }
 ];
 
-const featuredWorkspace = workspaces[0];
-
 export default function HomePage() {
+  const featuredWorkspace = listWorkspaces()[0];
+
   return (
     <main className="shell">
       <section className="hero panel">
@@ -26,8 +26,8 @@ export default function HomePage() {
           <p className="eyebrow">Private band collaboration, web-only first</p>
           <h1>Keep songs, mixes, and review decisions in one place.</h1>
           <p className="lede">
-            musegit is a focused workspace for indie bands and remote collaborators who need versioned music assets,
-            clear feedback, and a fast answer to one question: what is the current approved mix?
+            musegit is a focused workspace for band members who need versioned music assets, clear feedback, and a
+            fast answer to one question: what is the current working mix?
           </p>
           <div className="ctaRow">
             <Link className="primaryButton" href="/sign-in">Enter private app</Link>
@@ -35,13 +35,13 @@ export default function HomePage() {
           </div>
         </div>
         <div className="heroCard">
-          <p className="heroCardLabel">Latest approved version</p>
-          <h2>Velvet Static</h2>
-          <p className="heroCardMeta">mix-v12.wav</p>
+          <p className="heroCardLabel">Current working song</p>
+          <h2>Dazed Days</h2>
+          <p className="heroCardMeta">mix-v4.wav</p>
           <ul>
-            <li>Approved by 4 collaborators</li>
-            <li>Comments resolved on chorus compression</li>
-            <li>Uploaded 2 hours ago</li>
+            <li>4 band accounts in the session</li>
+            <li>Pending review on the latest mix</li>
+            <li>Updated 28 minutes ago</li>
           </ul>
         </div>
       </section>
@@ -58,7 +58,7 @@ export default function HomePage() {
       <section className="workspace" id="workspace">
         <div className="workspaceHeader">
           <div>
-            <p className="eyebrow">Mock workspace</p>
+            <p className="eyebrow">Band workspace</p>
             <h2>{featuredWorkspace.name}</h2>
           </div>
           <div className="workspaceMeta panel softPanel">

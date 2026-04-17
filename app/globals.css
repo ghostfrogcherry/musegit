@@ -557,6 +557,25 @@ ul {
   resize: vertical;
 }
 
+.audioPlayer {
+  width: 100%;
+}
+
+.formError {
+  margin: 0;
+  color: #ff9aa8;
+}
+
+.timestampButton {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(177, 151, 252, 0.14);
+  color: var(--purple);
+}
+
 @media (min-width: 760px) {
   .hero {
     grid-template-columns: 1.45fr 0.85fr;

@@ -1,19 +1,26 @@
 import Link from "next/link";
-import { pendingReviews, totalSongs, workspaces } from "@/lib/mock-data";
+import { listWorkspaces } from "@/lib/data";
 
 export default function AppPage() {
+  const workspaces = listWorkspaces();
+  const totalSongs = workspaces.reduce((count, workspace) => count + workspace.songs.length, 0);
+  const pendingReviews = workspaces.reduce(
+    (count, workspace) => count + workspace.songs.filter((song) => song.status === "Pending review").length,
+    0
+  );
+
   return (
     <main className="appMain">
       <section className="overviewGrid">
         <article className="panel statCard">
-          <p className="authLabel">Workspaces</p>
+          <p className="authLabel">Workspace</p>
           <h2>{workspaces.length}</h2>
-          <p className="songNote">Private collaboration spaces you can access right now.</p>
+          <p className="songNote">Private band space for the current writing and mix cycle.</p>
         </article>
         <article className="panel statCard">
-          <p className="authLabel">Songs</p>
+          <p className="authLabel">Active song</p>
           <h2>{totalSongs}</h2>
-          <p className="songNote">Tracked mixes and demos across all private bands.</p>
+          <p className="songNote">Tracked versions and comments for `Dazed Days`.</p>
         </article>
         <article className="panel statCard">
           <p className="authLabel">Pending review</p>
@@ -24,8 +31,8 @@ export default function AppPage() {
 
       <section className="panel workspaceDirectory">
         <div className="sectionHeading">
-          <h2>Your private workspaces</h2>
-          <span>Select a band to review songs, members, and recent activity.</span>
+          <h2>Your private workspace</h2>
+          <span>Open the band board to review `Dazed Days`, members, and recent activity.</span>
         </div>
         <div className="directoryGrid">
           {workspaces.map((workspace) => (
