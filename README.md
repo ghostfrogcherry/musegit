@@ -1,5 +1,7 @@
 # ChuneUp
 
+![ChuneUp logo](public/logo.png)
+
 Private band collaboration for indie bands and remote music projects.
 
 **ChuneUp** is a playful workspace for bands to track song versions, share feedback, and never ask "which mix is final?" again.
