@@ -352,6 +352,24 @@ ul {
   margin-bottom: 1.25rem;
 }
 
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brandLogo {
+  border-radius: 8px;
+}
+
+.heroLogo {
+  margin-bottom: 1rem;
+}
+
+.heroLogo img {
+  border-radius: 16px;
+}
+
 .brandLink {
   display: inline-block;
   font-size: 1.35rem;

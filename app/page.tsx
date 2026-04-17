@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { listWorkspaces } from "@/lib/data";
 
 const workflow = [
@@ -23,7 +24,10 @@ export default function HomePage() {
     <main className="shell">
       <section className="hero panel">
         <div>
-<p className="eyebrow">Private band collaboration, web-first</p>
+          <div className="heroLogo">
+            <Image alt="ChuneUp logo" height={120} src="/logo.png" width={120} />
+          </div>
+          <p className="eyebrow">Private band collaboration, web-first</p>
           <h1>Keep songs, mixes, and reviews in one place.</h1>
           <p className="lede">
             ChuneUp is a playful workspace for bands to track song versions, share feedback,
