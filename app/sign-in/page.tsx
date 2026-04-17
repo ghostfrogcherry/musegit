@@ -1,11 +1,9 @@
 import Link from "next/link";
-import { getDemoUser, listAccounts, listWorkspaces } from "@/lib/data";
+import { listAccounts } from "@/lib/data";
 import { signIn } from "./actions";
 
 export default function SignInPage() {
-  const demoUser = getDemoUser();
   const accounts = listAccounts();
-  const workspaces = listWorkspaces();
 
   return (
     <main className="authShell">
@@ -14,18 +12,22 @@ export default function SignInPage() {
           <p className="eyebrow">Private access</p>
           <h1 className="authTitle">Dazed Days stays inside the band.</h1>
           <p className="lede">
-            Sign in as Nathan to review the current `Dazed Days` mix, check comments, and track feedback from the band.
+            Pick your account to review `Dazed Days`, check comments, and track feedback from the band.
           </p>
         </div>
 
         <div className="authGrid">
           <div className="authCard softPanel panel">
-            <p className="authLabel">Signed-in account</p>
-            <h2>{demoUser.name}</h2>
-            <p>{demoUser.email}</p>
-            <p>{demoUser.role}</p>
-            <p>@{demoUser.handle}</p>
+            <p className="authLabel">Choose your account</p>
             <form action={signIn}>
+              <label className="fieldLabel" htmlFor="handle">Account</label>
+              <select className="fieldInput" id="handle" name="handle">
+                {accounts.map((account) => (
+                  <option key={account.handle} value={account.handle ?? ""}>
+                    {account.name} ({account.role})
+                  </option>
+                ))}
+              </select>
               <button className="primaryButton buttonReset" type="submit">Sign in to private app</button>
             </form>
             <Link className="secondaryButton inlineButton" href="/">Back to landing</Link>
@@ -38,7 +40,7 @@ export default function SignInPage() {
                 <li key={account.name}>
                   <strong>{account.name}</strong>
                   <span>{account.role}</span>
-                  <span>{account.handle ? `@${account.handle}` : workspaces[0].name}</span>
+                  <span>@{account.handle}</span>
                 </li>
               ))}
             </ul>
