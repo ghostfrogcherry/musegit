@@ -33,6 +33,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -253,6 +260,170 @@ ul {
   margin-top: 1rem;
 }
 
+.topSpace {
+  margin-top: 1rem;
+}
+
+.inlineButton {
+  display: inline-flex;
+  width: fit-content;
+}
+
+.buttonReset {
+  cursor: pointer;
+}
+
+.authShell,
+.appShell {
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+}
+
+.authPanel,
+.workspaceHero,
+.workspaceDirectory,
+.detailPanel,
+.statCard {
+  padding: 1.5rem;
+}
+
+.authTitle,
+.workspaceTitle,
+.statCard h2,
+.workspaceDirectory h2,
+.detailPanel h2 {
+  margin: 0;
+}
+
+.authGrid,
+.overviewGrid,
+.directoryGrid,
+.detailGrid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.authCard {
+  padding: 1.25rem;
+}
+
+.authLabel,
+.appSubhead,
+.workspaceFacts,
+.songFooterMeta,
+.memberRow span,
+.authCard p {
+  color: var(--muted);
+}
+
+.authLabel {
+  margin: 0 0 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.authList,
+.workspaceFacts,
+.memberList {
+  display: grid;
+  gap: 0.8rem;
+  padding-left: 1.1rem;
+}
+
+.authList li,
+.workspaceFacts li {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.appHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.brandLink {
+  display: inline-block;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.appSubhead {
+  margin: 0.35rem 0 0;
+}
+
+.appHeaderActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.userChip {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+}
+
+.appMain {
+  display: grid;
+  gap: 1rem;
+}
+
+.statCard {
+  min-height: 10rem;
+}
+
+.workspaceCard {
+  padding: 1.2rem;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.workspaceCard h3 {
+  margin: 0;
+}
+
+.songFooterMeta,
+.memberRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.songFooterMeta {
+  margin-top: 0.75rem;
+  font-size: 0.92rem;
+}
+
+.stackColumn {
+  display: grid;
+  gap: 1rem;
+}
+
+.memberList {
+  list-style: none;
+  padding-left: 0;
+}
+
+.memberRow {
+  padding: 0.9rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.memberRow:last-child {
+  border-bottom: 0;
+}
+
 @media (min-width: 760px) {
   .hero {
     grid-template-columns: 1.45fr 0.85fr;
@@ -265,6 +436,19 @@ ul {
 
   .workspaceGrid,
   .specGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .authGrid,
+  .detailGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .overviewGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .directoryGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -284,7 +468,11 @@ ul {
 
   .workspaceHeader,
   .sectionHeading,
-  .songTopRow {
+  .songTopRow,
+  .appHeader,
+  .appHeaderActions,
+  .songFooterMeta,
+  .memberRow {
     flex-direction: column;
     align-items: flex-start;
   }

@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { workspaces } from "@/lib/mock-data";
+
 const workflow = [
   {
     title: "Upload a new mix",
@@ -13,18 +16,7 @@ const workflow = [
   }
 ];
 
-const songStates = [
-  { name: "Velvet Static", status: "Approved", version: "mix-v12.wav", note: "Master candidate signed off by all 4 members." },
-  { name: "Night Window", status: "Changes requested", version: "mix-v7.wav", note: "Vocals need to come forward in the second chorus." },
-  { name: "Ghost Signal", status: "Pending review", version: "demo-v3.wav", note: "New rhythm guitar pass uploaded 18 minutes ago." }
-];
-
-const activity = [
-  "Rin uploaded mix-v12.wav to Velvet Static",
-  "Noah approved version 12 and marked it release-ready",
-  "Ivy commented on Night Window: try less delay on the bridge vocal",
-  "Ari invited Jules to the band workspace"
-];
+const featuredWorkspace = workspaces[0];
 
 export default function HomePage() {
   return (
@@ -38,7 +30,7 @@ export default function HomePage() {
             clear feedback, and a fast answer to one question: what is the current approved mix?
           </p>
           <div className="ctaRow">
-            <a className="primaryButton" href="#workspace">View MVP workspace</a>
+            <Link className="primaryButton" href="/sign-in">Enter private app</Link>
             <a className="secondaryButton" href="#spec">Read product shape</a>
           </div>
         </div>
@@ -67,11 +59,11 @@ export default function HomePage() {
         <div className="workspaceHeader">
           <div>
             <p className="eyebrow">Mock workspace</p>
-            <h2>Moonlit Receiver</h2>
+            <h2>{featuredWorkspace.name}</h2>
           </div>
           <div className="workspaceMeta panel softPanel">
-            <span>4 collaborators</span>
-            <span>9 songs</span>
+            <span>{featuredWorkspace.members.length} collaborators</span>
+            <span>{featuredWorkspace.songs.length} songs</span>
             <span>Private band space</span>
           </div>
         </div>
@@ -83,7 +75,7 @@ export default function HomePage() {
               <span>Current status at a glance</span>
             </div>
             <div className="songItems">
-              {songStates.map((song) => (
+              {featuredWorkspace.songs.map((song) => (
                 <article className="songItem" key={song.name}>
                   <div className="songTopRow">
                     <h4>{song.name}</h4>
@@ -102,7 +94,7 @@ export default function HomePage() {
               <span>Uploads, reviews, and member changes</span>
             </div>
             <ul className="activityList">
-              {activity.map((item) => (
+              {featuredWorkspace.activity.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -134,6 +126,9 @@ export default function HomePage() {
               <li>Mobile apps</li>
             </ul>
           </div>
+        </div>
+        <div className="ctaRow topSpace">
+          <Link className="primaryButton" href="/app">Preview protected workspace</Link>
         </div>
       </section>
     </main>
