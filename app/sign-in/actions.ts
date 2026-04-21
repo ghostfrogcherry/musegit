@@ -65,3 +65,9 @@ export async function signOut() {
   cookieStore.delete(sessionCookie);
   redirect("/");
 }
+
+export async function signOutWithStop() {
+  const cookieStore = await cookies();
+  cookieStore.delete(sessionCookie);
+  redirect("/?stop=1");
+}

@@ -6,6 +6,7 @@ import type { Account, ReviewState, Song, Workspace } from "@/lib/domain";
 import { usePlayer } from "@/lib/player-context";
 import { WaveformPlayer } from "./waveform-player";
 import { ComparePanel } from "./compare-panel";
+import { StemsPanel } from "./stems-panel";
 
 type SongReviewDemoProps = {
   currentUser: Account;
@@ -334,6 +335,10 @@ export function SongReviewDemo({ currentUser, workspace, song, members }: SongRe
               </div>
             )}
           </div>
+          
+          {currentVersion && (
+            <StemsPanel versionId={currentVersion.id} stems={currentVersion.stems} />
+          )}
         </article>
 
         <aside className="stackColumn">

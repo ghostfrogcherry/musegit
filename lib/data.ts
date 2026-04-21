@@ -21,7 +21,7 @@ const dbPath = join(dataDirectory, "musegit.db");
 
 let database: Database.Database | null = null;
 
-function getDb() {
+export function getDb() {
   if (!database) {
     mkdirSync(dataDirectory, { recursive: true });
     mkdirSync(uploadsDirectory, { recursive: true });
@@ -90,6 +90,16 @@ function initialize(db: Database.Database) {
       duration_seconds INTEGER,
       file_path TEXT,
       mime_type TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS stems (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      version_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      instrument TEXT,
+      file_path TEXT NOT NULL,
+      mime_type TEXT,
+      duration_seconds INTEGER
     );
 
     CREATE TABLE IF NOT EXISTS comments (
@@ -311,7 +321,8 @@ function getVersionsForSong(songId: number) {
     duration: formatDuration(row.duration_seconds),
     audioUrl: row.file_path ? `/api/audio/${row.id}` : null,
     comments: getCommentsForVersion(row.id),
-    approvals: getApprovalsForVersion(row.id)
+    approvals: getApprovalsForVersion(row.id),
+    stems: getStemsForVersion(row.id)
   }));
 }
 
@@ -828,8 +839,47 @@ export function getVersion(versionId: number) {
     duration: formatDuration(row.duration_seconds),
     audioUrl: row.file_path ? `/api/audio/${row.id}` : null,
     comments: getCommentsForVersion(row.id),
-    approvals: getApprovalsForVersion(row.id)
+    approvals: getApprovalsForVersion(row.id),
+    stems: getStemsForVersion(row.id)
   } satisfies Version;
+}
+
+function getStemsForVersion(versionId: number) {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT id, version_id, name, instrument, file_path, duration_seconds
+       FROM stems
+       WHERE version_id = ?`
+    )
+    .all(versionId) as Array<{
+      id: number;
+      version_id: number;
+      name: string;
+      instrument: string | null;
+      file_path: string;
+      duration_seconds: number | null;
+    }>;
+
+  return rows.map((row) => ({
+    id: row.id,
+    versionId: row.version_id,
+    name: row.name,
+    instrument: row.instrument,
+    audioUrl: `/api/stems/${row.id}`,
+    durationSeconds: row.duration_seconds
+  }));
+}
+
+export function createStem(input: { versionId: number; name: string; instrument?: string; filePath: string; mimeType: string; durationSeconds?: number }) {
+  const db = getDb();
+  const result = db
+    .prepare(
+      "INSERT INTO stems (version_id, name, instrument, file_path, mime_type, duration_seconds) VALUES (?, ?, ?, ?, ?, ?)"
+    )
+    .run(input.versionId, input.name, input.instrument ?? null, input.filePath, input.mimeType, input.durationSeconds ?? null);
+
+  return Number(result.lastInsertRowid);
 }
 
 export function getAudioFilePath(versionId: number) {

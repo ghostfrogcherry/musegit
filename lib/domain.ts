@@ -15,6 +15,15 @@ export type VersionApproval = {
   approvedAt: string;
 };
 
+export type Stem = {
+  id: number;
+  versionId: number;
+  name: string;
+  instrument: string | null;
+  audioUrl: string | null;
+  durationSeconds: number | null;
+};
+
 export type Comment = {
   id: number;
   author: string;
@@ -34,6 +43,7 @@ export type Version = {
   audioUrl: string | null;
   comments: Comment[];
   approvals: VersionApproval[];
+  stems: Stem[];
 };
 
 export type Song = {

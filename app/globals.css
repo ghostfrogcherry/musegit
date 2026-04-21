@@ -1159,3 +1159,67 @@ ul {
     z-index: 10;
   }
 }
+
+.stemsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stemRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: var(--bg-accent);
+  border-radius: 8px;
+}
+
+.stemInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.stemInfo strong {
+  font-size: 0.9rem;
+}
+
+.stemInfo span {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.stemControls {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.stemButton {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.stemButton.mute.active {
+  background: var(--red);
+  color: white;
+}
+
+.stemButton.solo.active {
+  background: var(--gold);
+  color: var(--bg);
+}
+
+.stemUpload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}

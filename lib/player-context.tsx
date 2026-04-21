@@ -34,6 +34,7 @@ type PlayerContextType = {
   setPlaybackRate: (rate: number) => void;
   stop: () => void;
   setActivePlayer: (player: "page" | "persistent") => void;
+  clearAll: () => void;
 };
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -209,9 +210,21 @@ function toggle() {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
+    if (pageAudioRef.current) {
+      pageAudioRef.current.pause();
+      pageAudioRef.current.currentTime = 0;
+    }
     setCurrentTrack(null);
     setIsPlaying(false);
     setCurrentTime(0);
+  }
+
+  function clearAll() {
+    stop();
+    setVolume(1);
+    setPlaybackRate(1);
+    setIsMuted(false);
+    setWaveformData([]);
   }
 
   return (
@@ -238,6 +251,7 @@ function toggle() {
         toggleMute,
         setPlaybackRate: setPlaybackRateLevel,
         stop,
+        clearAll,
         setActivePlayer
       }}
     >
