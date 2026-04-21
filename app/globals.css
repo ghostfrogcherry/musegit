@@ -1042,3 +1042,120 @@ ul {
   color: var(--green);
   margin-bottom: 0.75rem;
 }
+
+.marketingNav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: transparent;
+  position: relative;
+  z-index: 10;
+}
+
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brandLogo {
+  border-radius: 8px;
+}
+
+.brandLink {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.navActions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.hero {
+  display: grid;
+  gap: 2.5rem;
+  padding: 2rem;
+  align-items: start;
+  position: relative;
+  overflow: hidden;
+  border-color: var(--green);
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, 0.06), rgba(251, 191, 36, 0.04), rgba(255, 143, 171, 0.03)),
+    var(--panel);
+}
+
+.heroMain {
+  max-width: 28rem;
+}
+
+.heroFeatures {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.featureItem {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem;
+  background: var(--bg-accent);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.featureGreen {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.featureGold {
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.featurePurple {
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+.featureIcon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.featureItem strong {
+  display: block;
+  font-size: 1.1rem;
+  margin-bottom: 0.2rem;
+}
+
+.featureItem p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+@media (min-width: 760px) {
+  .hero {
+    grid-template-columns: 1fr 1fr;
+    padding: 3rem;
+    gap: 3rem;
+  }
+
+  .heroMain {
+    align-self: center;
+  }
+
+  .heroFeatures {
+    grid-template-columns: 1fr;
+  }
+
+  .marketingNav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: transparent;
+    position: relative;
+    z-index: 10;
+  }
+}
