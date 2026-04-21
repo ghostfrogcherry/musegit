@@ -1,13 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { analyzeAudioFile } from "@/lib/audio-analysis";
 import type { Account, ReviewState, Song, Workspace } from "@/lib/domain";
+import { usePlayer } from "@/lib/player-context";
 import { WaveformPlayer } from "./waveform-player";
+import { ComparePanel } from "./compare-panel";
 
 type SongReviewDemoProps = {
   currentUser: Account;
   workspace: Workspace;
   song: Song;
+  members: (Account & { workspace_role?: string })[];
 };
 
 type UploadDraft = {
@@ -56,7 +60,7 @@ function parseDurationToSeconds(duration: string) {
   return 180;
 }
 
-export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoProps) {
+export function SongReviewDemo({ currentUser, workspace, song, members }: SongReviewDemoProps) {
   const [versions, setVersions] = useState(song.versions);
   const [latestVersionId, setLatestVersionId] = useState(song.latestVersionId);
   const [selectedVersionId, setSelectedVersionId] = useState(song.latestVersionId);
@@ -77,10 +81,33 @@ export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoP
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  const currentUserMember = members.find((m) => m.id === currentUser.id);
+  const isManager = currentUserMember?.workspace_role === "manager" || currentUser.role === "Admin";
+  const memberCount = members.length;
+  const { play, currentTrack, isPlaying: playerIsPlaying } = usePlayer();
+  const canApprove = isManager || memberCount <= 1;
+
   const currentVersion = versions.find((version) => version.id === selectedVersionId) ?? versions[0];
+  const hasCurrentVersion = Boolean(currentVersion);
   const commentCount = versions.reduce((count, version) => count + version.comments.length, 0);
+  const allApproved = currentVersion?.approvals.length === memberCount && memberCount > 0;
 
   async function applyReviewState(nextState: ReviewState) {
+    if (!currentVersion) {
+      return;
+    }
+
+    if (nextState === "Approved") {
+      if (!canApprove) {
+        setCommentError("Only the band manager can approve versions.");
+        return;
+      }
+      if (!allApproved && !isManager && memberCount > 1) {
+        setCommentError("All band members must approve before the version can be approved.");
+        return;
+      }
+    }
+
     setStatusPending(true);
 
     const response = await fetch(`/api/versions/${selectedVersionId}/status`, {
@@ -104,6 +131,11 @@ export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoP
   }
 
   async function addComment() {
+    if (!currentVersion) {
+      setCommentError("Upload a version before posting comments.");
+      return;
+    }
+
     const trimmedBody = commentBody.trim();
 
     if (!trimmedBody) {
@@ -143,6 +175,26 @@ export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoP
     setCommentTimestamp("");
   }
 
+  const [detectedBpm, setDetectedBpm] = useState<number | undefined>();
+  const [detectedKey, setDetectedKey] = useState<string | undefined>();
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadError("");
+    setDetectedBpm(undefined);
+    setDetectedKey(undefined);
+
+    try {
+      const analysis = await analyzeAudioFile(file);
+      setDetectedBpm(analysis.bpm);
+      setDetectedKey(analysis.key);
+    } catch (err) {
+      console.error("Audio analysis failed:", err);
+    }
+  }
+
   async function addVersion() {
     const trimmedSummary = uploadDraft.summary.trim();
     const file = fileInputRef.current?.files?.[0];
@@ -159,6 +211,8 @@ export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoP
     formData.set("songId", String(song.id));
     formData.set("summary", trimmedSummary);
     formData.set("audio", file);
+    if (detectedBpm) formData.set("bpm", String(detectedBpm));
+    if (detectedKey) formData.set("key", detectedKey);
 
     const response = await fetch(`/api/songs/${song.id}/versions`, {
       method: "POST",
@@ -178,6 +232,8 @@ export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoP
     setSelectedVersionId(newVersion.id);
     setSongStatus("Pending review");
     setSongVersion(newVersion.fileName);
+    setDetectedBpm(undefined);
+    setDetectedKey(undefined);
     setSongUpdatedAt("just now");
     setComposerOpen(false);
     if (fileInputRef.current) {
@@ -219,33 +275,64 @@ export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoP
         <article className="panel detailPanel">
           <div className="sectionHeading">
             <h2>Current version</h2>
-            <span>{currentVersion.fileName} · uploaded {currentVersion.uploadedAt}</span>
+            <span>
+              {currentVersion ? `${currentVersion.fileName} · uploaded ${currentVersion.uploadedAt}` : "No versions uploaded yet"}
+            </span>
           </div>
           <div className="currentVersionCard">
-            <div className="versionBadgeRow">
-              <span className="versionPill">{currentVersion.duration}</span>
-              <span className={statusClassName(currentVersion.status)}>{currentVersion.status}</span>
-            </div>
-            <p className="currentVersionSummary">{currentVersion.summary}</p>
-            {currentVersion.audioUrl ? (
-              <WaveformPlayer
-                audioSrc={currentVersion.audioUrl}
-                durationSeconds={parseDurationToSeconds(currentVersion.duration)}
-                comments={currentVersion.comments}
-              />
+            {currentVersion ? (
+              <>
+                <div className="versionBadgeRow">
+                  <span className="versionPill">{currentVersion.duration}</span>
+                  {currentVersion.audioUrl && (
+                    <button
+                      className="secondaryButton buttonReset inlineButton"
+                      onClick={() => {
+                        if (currentVersion.audioUrl) {
+                          play({
+                            songId: song.id,
+                            songName: song.name,
+                            workspaceName: workspace.name,
+                            versionId: currentVersion.id,
+                            audioSrc: currentVersion.audioUrl,
+                            duration: parseDurationToSeconds(currentVersion.duration)
+                          });
+                        }
+                      }}
+                      type="button"
+                    >
+                      ▶ Play in player
+                    </button>
+                  )}
+                  <span className={statusClassName(currentVersion.status)}>{currentVersion.status}</span>
+                </div>
+                <p className="currentVersionSummary">{currentVersion.summary}</p>
+                {currentVersion.audioUrl ? (
+                  <WaveformPlayer
+                    audioSrc={currentVersion.audioUrl}
+                    durationSeconds={parseDurationToSeconds(currentVersion.duration)}
+                    comments={currentVersion.comments}
+                  />
+                ) : (
+                  <p className="songNote topSpace">No audio file attached to this version yet. Upload a new pass to add playback.</p>
+                )}
+                <div className="metaPairGrid topSpace">
+                  <div className="metaBlock softPanel panel">
+                    <p className="authLabel">Uploaded by</p>
+                    <strong>{currentVersion.uploadedBy}</strong>
+                  </div>
+                  <div className="metaBlock softPanel panel">
+                    <p className="authLabel">Review guidance</p>
+                    <strong>{song.note}</strong>
+                  </div>
+                </div>
+              </>
             ) : (
-              <p className="songNote topSpace">No audio file attached to this version yet. Upload a new pass to add playback.</p>
+              <div className="emptyState">
+                <strong>No versions yet</strong>
+                <p>Upload the first audio version for this song to start playback, review, and comments.</p>
+              </div>
             )}
-            <div className="metaPairGrid topSpace">
-              <div className="metaBlock softPanel panel">
-                <p className="authLabel">Uploaded by</p>
-                <strong>{currentVersion.uploadedBy}</strong>
-              </div>
-              <div className="metaBlock softPanel panel">
-                <p className="authLabel">Review guidance</p>
-                <strong>{song.note}</strong>
-              </div>
-            </div>
           </div>
         </article>
 
@@ -253,14 +340,36 @@ export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoP
           <article className="panel detailPanel">
             <div className="sectionHeading">
               <h2>Review state</h2>
-              <span>What the band should do next</span>
+              <span>What should happen next</span>
             </div>
+            {memberCount > 1 && (
+              <div className="approvalList topSpace">
+                <p className="authLabel">Band member approvals</p>
+                <div className="approvalChips">
+                  {members.map((member) => {
+                    const approved = currentVersion?.approvals.some((a) => a.userId === member.id);
+                    return (
+                      <span key={member.id} className={`approvalChip${approved ? " approved" : ""}`}>
+                        {member.name} {approved ? "✓" : "○"}
+                      </span>
+                    );
+                  })}
+                </div>
+                <p className="songNote">
+                  {isManager 
+                    ? "As manager, you can approve solo or wait for all members." 
+                    : "As a member, you can approve. All members must approve for full approval."}
+                </p>
+              </div>
+            )}
             <div className="reviewActions">
-              <button className={`reviewButton approve buttonReset${songStatus === "Approved" ? " reviewButtonActive" : ""}`} disabled={statusPending} onClick={() => applyReviewState("Approved")} type="button">Approve version</button>
-              <button className={`reviewButton request buttonReset${songStatus === "Changes requested" ? " reviewButtonActive" : ""}`} disabled={statusPending} onClick={() => applyReviewState("Changes requested")} type="button">Request changes</button>
-              <button className={`reviewButton pending buttonReset${songStatus === "Pending review" ? " reviewButtonActive" : ""}`} disabled={statusPending} onClick={() => applyReviewState("Pending review")} type="button">Leave pending</button>
+              <button className={`reviewButton approve buttonReset${songStatus === "Approved" ? " reviewButtonActive" : ""}`} disabled={statusPending || !hasCurrentVersion} onClick={() => applyReviewState("Approved")} type="button">Approve version</button>
+              <button className={`reviewButton request buttonReset${songStatus === "Changes requested" ? " reviewButtonActive" : ""}`} disabled={statusPending || !hasCurrentVersion} onClick={() => applyReviewState("Changes requested")} type="button">Request changes</button>
+              <button className={`reviewButton pending buttonReset${songStatus === "Pending review" ? " reviewButtonActive" : ""}`} disabled={statusPending || !hasCurrentVersion} onClick={() => applyReviewState("Pending review")} type="button">Leave pending</button>
             </div>
-            <p className="songNote topSpace">Review changes now persist to the local SQLite store.</p>
+            <p className="songNote topSpace">
+              {commentError || (currentVersion ? "Review changes now persist to the local SQLite store." : "Upload a version before changing review state.")}
+            </p>
           </article>
 
           <article className="panel detailPanel">
@@ -273,7 +382,12 @@ export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoP
             {composerOpen ? (
               <div className="uploadComposer">
                 <label className="fieldLabel" htmlFor="audioFile">Audio file</label>
-                <input accept="audio/*" className="fieldInput" id="audioFile" ref={fileInputRef} type="file" />
+                <input accept="audio/*" className="fieldInput" id="audioFile" onChange={handleFileSelect} ref={fileInputRef} type="file" />
+                {(detectedBpm || detectedKey) && (
+                  <div className="analysisPreview">
+                    <span>Detected: {detectedBpm ? `${detectedBpm} BPM` : ""} {detectedKey ? detectedKey : ""}</span>
+                  </div>
+                )}
                 <label className="fieldLabel" htmlFor="summary">What changed</label>
                 <textarea className="fieldInput fieldTextarea" id="summary" onChange={(event) => setUploadDraft({ summary: event.target.value })} value={uploadDraft.summary} />
                 {uploadError ? <p className="formError">{uploadError}</p> : null}
@@ -284,10 +398,20 @@ export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoP
             )}
           </article>
 
+          {versions.length >= 2 && (
+            <article className="panel detailPanel">
+              <div className="sectionHeading">
+                <h2>A/B Compare</h2>
+                <span>Compare two versions side by side</span>
+              </div>
+              <ComparePanel versions={versions} />
+            </article>
+          )}
+
           <article className="panel detailPanel">
             <div className="sectionHeading">
               <h2>Navigate</h2>
-              <span>Back to the band board</span>
+              <span>Back to the album view</span>
             </div>
             <a className="secondaryButton inlineButton" href={`/app/bands/${workspace.slug}`}>Back to {workspace.name}</a>
             <p className="songNote topSpace">Signed in as {currentUser.name}. Updated {songUpdatedAt}</p>
@@ -321,7 +445,7 @@ export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoP
         <article className="panel detailPanel">
           <div className="sectionHeading">
             <h2>Comment thread</h2>
-            <span>Feedback pinned to {currentVersion.fileName}</span>
+            <span>{currentVersion ? `Feedback pinned to ${currentVersion.fileName}` : "Feedback will appear after the first upload"}</span>
           </div>
           <div className="uploadComposer">
             <label className="fieldLabel" htmlFor="commentBody">New comment</label>
@@ -329,23 +453,30 @@ export function SongReviewDemo({ currentUser, workspace, song }: SongReviewDemoP
             <label className="fieldLabel" htmlFor="commentTimestamp">Timestamp (optional, `mm:ss`)</label>
             <input className="fieldInput" id="commentTimestamp" onChange={(event) => setCommentTimestamp(event.target.value)} placeholder="01:22" value={commentTimestamp} />
             {commentError ? <p className="formError">{commentError}</p> : null}
-            <button className="primaryButton buttonReset inlineButton" disabled={commentPending} onClick={addComment} type="button">{commentPending ? "Posting..." : "Post comment"}</button>
+            <button className="primaryButton buttonReset inlineButton" disabled={commentPending || !hasCurrentVersion} onClick={addComment} type="button">{commentPending ? "Posting..." : "Post comment"}</button>
           </div>
           <div className="commentList topSpace">
-            {currentVersion.comments.map((comment) => (
-              <article className="commentCard" key={comment.id}>
-                <div className="commentHeader">
-                  <strong>{comment.author}</strong>
-                  <span>{comment.postedAt}</span>
-                </div>
-                {comment.timestamp ? (
-                  <button className="timestampButton buttonReset" onClick={() => jumpToTimestamp(comment.timestamp)} type="button">
-                    Jump to {comment.timestamp}
-                  </button>
-                ) : null}
-                <p>{comment.body}</p>
-              </article>
-            ))}
+            {currentVersion ? (
+              currentVersion.comments.map((comment) => (
+                <article className="commentCard" key={comment.id}>
+                  <div className="commentHeader">
+                    <strong>{comment.author}</strong>
+                    <span>{comment.postedAt}</span>
+                  </div>
+                  {comment.timestamp ? (
+                    <button className="timestampButton buttonReset" onClick={() => jumpToTimestamp(comment.timestamp)} type="button">
+                      Jump to {comment.timestamp}
+                    </button>
+                  ) : null}
+                  <p>{comment.body}</p>
+                </article>
+              ))
+            ) : (
+              <div className="emptyState">
+                <strong>No comments yet</strong>
+                <p>Upload a version first, then you can leave feedback and timestamped notes here.</p>
+              </div>
+            )}
           </div>
         </article>
       </section>

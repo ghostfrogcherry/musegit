@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
-import { getSong } from "@/lib/data";
+import { requireCurrentUser } from "@/lib/auth";
+import { getSongForUser, getWorkspaceMembers } from "@/lib/data";
 import { SongReviewDemo } from "./song-review-demo";
 
 type PageProps = {
@@ -9,14 +9,15 @@ type PageProps = {
 
 export default async function SongPage({ params }: PageProps) {
   const { slug, songSlug } = await params;
-  const songEntry = getSong(slug, songSlug);
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireCurrentUser();
+  const songEntry = getSongForUser(currentUser.id, slug, songSlug);
 
   if (!songEntry) {
     notFound();
   }
 
   const { workspace, song } = songEntry;
+  const members = getWorkspaceMembers(workspace.id);
 
-  return <SongReviewDemo currentUser={currentUser} song={song} workspace={workspace} />;
+  return <SongReviewDemo currentUser={currentUser} song={song} workspace={workspace} members={members} />;
 }

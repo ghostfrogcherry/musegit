@@ -2,27 +2,46 @@
 
 ![ChuneUp logo](public/logo.png)
 
-Private band collaboration for indie bands and remote music projects.
+Private music review workspace for bands, producers, and remote collaborators.
 
-**ChuneUp** is a playful workspace for bands to track song versions, share feedback, and never ask "which mix is final?" again.
+**ChuneUp** helps music teams manage song versions, timestamped feedback, approvals, and private audio review without relying on shared folders plus scattered chat threads.
 
-## MVP Focus
+## Product Thesis
+
+Most music teams already have the files. What they lack is decision clarity.
+
+ChuneUp is designed to replace the messy stack of cloud storage, text threads, and vague version naming with a focused workflow built around:
+
+- songs
+- versions
+- comments
+- review state
+- private collaboration
+
+## Current Focus
 
 - Private band workspaces
 - Songs and mixes as the core unit of work
 - Versioned asset uploads
-- Comments and review state on each version
-- Web-only first
+- Timestamped comments and review state on each version
+- Web-first product that works well for non-technical band members
 
-## Product Direction
+## Positioning
 
-This is not a public music platform and not a DAW replacement.
+ChuneUp is not a public music platform and not a DAW replacement.
 
-The first version is aimed at:
+It is aimed at teams who are currently using:
+
+- Drive, Dropbox, or WeTransfer for files
+- group chat for feedback
+- memory for approval state
+
+## Early Ideal Users
 
 - indie bands
-- remote collaborators
-- small music teams currently using shared folders and chat
+- producers with recurring collaborators
+- remote writing teams
+- small label or artist-development teams
 
 ## Docs
 

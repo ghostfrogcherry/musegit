@@ -12,6 +12,11 @@ type RouteProps = {
 export async function POST(request: Request, { params }: RouteProps) {
   const { songId } = await params;
   const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const formData = await request.formData();
   const summary = String(formData.get("summary") ?? "").trim();
   const audio = formData.get("audio");

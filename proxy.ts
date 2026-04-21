@@ -10,13 +10,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
-  if (pathname === "/sign-in" && isSignedIn) {
-    return NextResponse.redirect(new URL("/app", request.url));
-  }
-
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/sign-in"]
+  matcher: ["/app/:path*"]
 };

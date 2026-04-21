@@ -1,20 +1,34 @@
 import "server-only";
 
 import { cookies } from "next/headers";
-import { getDemoUser, getUserByHandle } from "@/lib/data";
+import { redirect } from "next/navigation";
+import { getUserById } from "@/lib/data";
 import { sessionCookie } from "@/lib/session";
+import { verifySessionValue } from "@/lib/security";
 
 export async function getCurrentUser() {
   const cookieStore = await cookies();
-  const handle = cookieStore.get(sessionCookie)?.value;
+  const sessionValue = cookieStore.get(sessionCookie)?.value;
 
-  if (handle) {
-    const user = getUserByHandle(handle);
-
-    if (user) {
-      return user;
-    }
+  if (!sessionValue) {
+    return undefined;
   }
 
-  return getDemoUser();
+  const session = verifySessionValue(sessionValue);
+
+  if (!session) {
+    return undefined;
+  }
+
+  return getUserById(session.userId);
+}
+
+export async function requireCurrentUser() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/sign-in");
+  }
+
+  return user;
 }

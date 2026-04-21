@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Comment } from "@/lib/domain";
+import { usePlayer } from "@/lib/player-context";
 
 type WaveformPlayerProps = {
   audioSrc: string;
@@ -15,6 +16,7 @@ interface PlayheadState {
 }
 
 export function WaveformPlayer({ audioSrc, durationSeconds, comments }: WaveformPlayerProps) {
+  const { pausePageAudio, registerPageAudio, activePlayer } = usePlayer();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -22,26 +24,68 @@ export function WaveformPlayer({ audioSrc, durationSeconds, comments }: Waveform
   const audioBufferRef = useRef<AudioBuffer | null>(null);
   const animationRef = useRef<number>(0);
 
+  useEffect(() => {
+    registerPageAudio(audioRef.current);
+    return () => registerPageAudio(null);
+  }, []);
+
   const [playhead, setPlayhead] = useState<PlayheadState>({ currentTime: 0, isPlaying: false });
   const [waveformData, setWaveformData] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
-    if (!audioSrc) return;
+    if (!audioSrc) {
+      setError("No audio source");
+      setIsLoading(false);
+      return;
+    }
+
+    console.log("Waveform useEffect running, audioSrc:", audioSrc, "retryKey:", retryKey);
 
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      console.log("Waveform: No canvas ref");
+      return;
+    }
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) {
+      console.log("Waveform: No 2d context");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
 
     const initAudio = async () => {
       try {
+        console.log("Waveform: Fetching audio from:", audioSrc);
         audioContextRef.current = new AudioContext();
-        const response = await fetch(audioSrc);
+        
+        const response = await fetch(audioSrc, { 
+          credentials: "include",
+          mode: "cors"
+        });
+        
+        console.log("Waveform: Response status:", response.status, response.statusText);
+        
+        if (!response.ok) {
+          const text = await response.text();
+          console.error("Waveform: Response error:", text);
+          throw new Error(`HTTP ${response.status}: ${text}`);
+        }
+        
         const arrayBuffer = await response.arrayBuffer();
+        console.log("Waveform: ArrayBuffer byteLength:", arrayBuffer.byteLength);
+        
+        if (arrayBuffer.byteLength === 0) {
+          throw new Error("Empty audio file");
+        }
+        
         const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
-        audioBufferRef.current = audioBuffer;
+        console.log("Waveform: Audio decoded, duration:", audioBuffer.duration, "channels:", audioBuffer.numberOfChannels);
 
         const rawData = audioBuffer.getChannelData(0);
         const samples = 200;
@@ -63,7 +107,9 @@ export function WaveformPlayer({ audioSrc, durationSeconds, comments }: Waveform
         const normalizedData = filteredData.map((v) => v / maxVal);
         setWaveformData(normalizedData);
         setIsLoading(false);
-      } catch {
+      } catch (err) {
+        console.error("Waveform load error:", err);
+        setError(err instanceof Error ? err.message : "Unknown error");
         setIsLoading(false);
       }
     };
@@ -78,7 +124,7 @@ export function WaveformPlayer({ audioSrc, durationSeconds, comments }: Waveform
         audioContextRef.current.close();
       }
     };
-  }, [audioSrc]);
+  }, [audioSrc, retryKey]);
 
   useEffect(() => {
     if (!canvasRef.current || waveformData.length === 0) return;
@@ -161,6 +207,8 @@ export function WaveformPlayer({ audioSrc, durationSeconds, comments }: Waveform
   const togglePlay = () => {
     if (!audioRef.current) return;
 
+    pausePageAudio();
+
     if (playhead.isPlaying) {
       audioRef.current.pause();
     } else {
@@ -198,19 +246,27 @@ export function WaveformPlayer({ audioSrc, durationSeconds, comments }: Waveform
     <div className="waveformPlayer">
       <audio ref={audioRef} src={audioSrc} preload="metadata" />
 
-      <div className="waveformContainer" ref={containerRef}>
-        {isLoading ? (
-          <div className="waveformLoading">Loading waveform...</div>
-        ) : (
-          <canvas
-            ref={canvasRef}
-            className="waveformCanvas"
-            onClick={handleClick}
-            width={600}
-            height={80}
-          />
+      <div className="waveformContainer" ref={containerRef} style={{ position: "relative" }}>
+        <canvas
+          ref={canvasRef}
+          className="waveformCanvas"
+          onClick={handleClick}
+          width={600}
+          height={80}
+        />
+        {isLoading && (
+          <div className="waveformLoadingOverlay">
+            {error ? `Error: ${error}` : `Loading waveform...`}
+          </div>
         )}
       </div>
+      {error && (
+        <div style={{ padding: "0.5rem" }}>
+          <button className="secondaryButton buttonReset" onClick={() => setRetryKey(k => k + 1)}>
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className="waveformControls">
         <button className="playButton buttonReset" onClick={togglePlay} type="button">

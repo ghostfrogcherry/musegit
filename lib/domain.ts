@@ -6,6 +6,13 @@ export type Account = {
   role: string;
   email: string;
   handle?: string;
+  workspace_role?: string;
+};
+
+export type VersionApproval = {
+  versionId: number;
+  userId: number;
+  approvedAt: string;
 };
 
 export type Comment = {
@@ -26,6 +33,7 @@ export type Version = {
   duration: string;
   audioUrl: string | null;
   comments: Comment[];
+  approvals: VersionApproval[];
 };
 
 export type Song = {

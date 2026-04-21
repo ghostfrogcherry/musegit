@@ -4,133 +4,22 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import type { Account, Comment, ReviewState, Song, Version, Workspace } from "@/lib/domain";
+import { hashPassword } from "@/lib/security";
 
-type SeedComment = {
-  authorHandle: string;
-  postedAt: string;
-  body: string;
-  timestampSeconds?: number;
-};
+const adminSeed = {
+  name: "Nathan",
+  role: "Admin",
+  email: "hoppinghosts@proton.me",
+  handle: "ghostfrogcherry",
+  password: "lowend4life"
+} as const;
 
-type SeedVersion = {
-  fileName: string;
-  uploadedByHandle: string;
-  uploadedAt: string;
-  status: ReviewState;
-  summary: string;
-  durationSeconds: number;
-  comments: SeedComment[];
-};
-
-const accountsSeed = [
-  { name: "Nathan", role: "Bass player", email: "hoppinghosts@proton.me", handle: "ghostfrogcherry" },
-  { name: "Landon", role: "Band Manager / Singer / Guitarist", email: "landon@dazeddays.local", handle: "landon" },
-  { name: "Austin", role: "Guitarist", email: "austin@dazeddays.local", handle: "austin" },
-  { name: "Emmerson", role: "Drummer", email: "emmerson@dazeddays.local", handle: "emmerson" }
-] as const;
-
-const songSeed: {
-  workspace: { slug: string; name: string; genre: string };
-  song: { slug: string; name: string; note: string; bpm: number; key: string };
-  versions: SeedVersion[];
-} = {
-  workspace: {
-    slug: "dazed-days-sessions",
-    name: "Dazed Days Sessions",
-    genre: "Private band workspace"
-  },
-  song: {
-    slug: "dazed-days",
-    name: "Dazed Days",
-    note: "Lock the chorus energy and decide whether bass should push harder in the second verse.",
-    bpm: 112,
-    key: "E minor"
-  },
-  versions: [
-    {
-      fileName: "mix-v4.wav",
-      uploadedByHandle: "landon",
-      uploadedAt: isoOffset({ minutes: 28 }),
-      status: "Pending review",
-      summary: "Latest working mix with louder chorus guitars, tighter bass pocket, and a cleaner vocal delay throw.",
-      durationSeconds: 246,
-      comments: [
-        {
-          authorHandle: "ghostfrogcherry",
-          postedAt: isoOffset({ minutes: 21 }),
-          timestampSeconds: 82,
-          body: "Bass is sitting better here, but I think the second verse could still hit a little harder."
-        },
-        {
-          authorHandle: "emmerson",
-          postedAt: isoOffset({ minutes: 17 }),
-          timestampSeconds: 168,
-          body: "Chorus lift feels right. I would keep the kick punchy and not wash it out with more room."
-        },
-        {
-          authorHandle: "austin",
-          postedAt: isoOffset({ minutes: 9 }),
-          body: "The guitars are finally opening up in the hook without stepping on the vocal."
-        }
-      ]
-    },
-    {
-      fileName: "mix-v3.wav",
-      uploadedByHandle: "landon",
-      uploadedAt: isoOffset({ hours: 24 }),
-      status: "Changes requested",
-      summary: "Pulled the lead vocal forward and tucked the rhythm guitars to make room for the chorus melody.",
-      durationSeconds: 246,
-      comments: [
-        {
-          authorHandle: "ghostfrogcherry",
-          postedAt: isoOffset({ hours: 23 }),
-          timestampSeconds: 54,
-          body: "Verse groove improved, but the bass disappears when the chorus doubles come in."
-        },
-        {
-          authorHandle: "landon",
-          postedAt: isoOffset({ hours: 22 }),
-          body: "Need one more pass where the hook feels wider without losing the vocal."
-        }
-      ]
-    },
-    {
-      fileName: "mix-v2.wav",
-      uploadedByHandle: "austin",
-      uploadedAt: isoOffset({ days: 3 }),
-      status: "Approved",
-      summary: "Arrangement reference bounce after the intro guitar cleanup and tighter bridge transition.",
-      durationSeconds: 245,
-      comments: [
-        {
-          authorHandle: "emmerson",
-          postedAt: isoOffset({ days: 3, minutes: -10 }),
-          body: "Good reference point for arrangement. The bridge move works."
-        }
-      ]
-    }
-  ]
-};
-
+const legacyHandles = ["landon", "austin", "emmerson"] as const;
 const dataDirectory = join(/* turbopackIgnore: true */ process.cwd(), "data");
 const uploadsDirectory = join(/* turbopackIgnore: true */ process.cwd(), "uploads", "audio");
 const dbPath = join(dataDirectory, "musegit.db");
 
 let database: Database.Database | null = null;
-
-function isoOffset(offset: { minutes?: number; hours?: number; days?: number }) {
-  const date = new Date();
-  const minutes = offset.minutes ?? 0;
-  const hours = offset.hours ?? 0;
-  const days = offset.days ?? 0;
-
-  date.setMinutes(date.getMinutes() - minutes);
-  date.setHours(date.getHours() - hours);
-  date.setDate(date.getDate() - days);
-
-  return date.toISOString();
-}
 
 function getDb() {
   if (!database) {
@@ -152,7 +41,8 @@ function initialize(db: Database.Database) {
       name TEXT NOT NULL,
       role TEXT NOT NULL,
       email TEXT NOT NULL,
-      handle TEXT NOT NULL UNIQUE
+      handle TEXT NOT NULL UNIQUE,
+      password_hash TEXT
     );
 
     CREATE TABLE IF NOT EXISTS workspaces (
@@ -165,7 +55,15 @@ function initialize(db: Database.Database) {
     CREATE TABLE IF NOT EXISTS workspace_members (
       workspace_id INTEGER NOT NULL,
       user_id INTEGER NOT NULL,
+      role TEXT NOT NULL DEFAULT 'member',
       PRIMARY KEY (workspace_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS version_approvals (
+      version_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      approved_at TEXT NOT NULL,
+      PRIMARY KEY (version_id, user_id)
     );
 
     CREATE TABLE IF NOT EXISTS songs (
@@ -203,86 +101,67 @@ function initialize(db: Database.Database) {
       timestamp_seconds INTEGER
     );
   `);
+
+  ensureColumn(db, "users", "password_hash", "TEXT");
+}
+
+function ensureColumn(db: Database.Database, tableName: string, columnName: string, definition: string) {
+  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>;
+
+  if (!columns.some((column) => column.name === columnName)) {
+    db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+  }
 }
 
 function seed(db: Database.Database) {
-  const existingWorkspace = db.prepare("SELECT COUNT(*) AS count FROM workspaces").get() as { count: number };
+  cleanupLegacyDemoData(db);
+  ensureAdminAccount(db);
+}
 
-  if (existingWorkspace.count > 0) {
+function cleanupLegacyDemoData(db: Database.Database) {
+  const legacyWorkspace = db.prepare("SELECT id FROM workspaces WHERE slug = ?").get("dazed-days-sessions") as { id: number } | undefined;
+  const legacyUsers = db
+    .prepare(`SELECT COUNT(*) AS count FROM users WHERE handle IN (${legacyHandles.map(() => "?").join(", ")})`)
+    .get(...legacyHandles) as { count: number };
+
+  if (!legacyWorkspace && legacyUsers.count === 0) {
     return;
   }
 
-  const insertUser = db.prepare("INSERT INTO users (name, role, email, handle) VALUES (?, ?, ?, ?)");
-  const insertWorkspace = db.prepare("INSERT INTO workspaces (slug, name, genre) VALUES (?, ?, ?)");
-  const insertMembership = db.prepare("INSERT INTO workspace_members (workspace_id, user_id) VALUES (?, ?)");
-  const insertSong = db.prepare(
-    "INSERT INTO songs (workspace_id, slug, name, status, note, bpm, key_signature) VALUES (?, ?, ?, ?, ?, ?, ?)"
-  );
-  const insertVersion = db.prepare(
-    "INSERT INTO versions (song_id, file_name, uploaded_by_user_id, created_at, status, summary, duration_seconds, file_path, mime_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  );
-  const insertComment = db.prepare(
-    "INSERT INTO comments (version_id, user_id, created_at, body, timestamp_seconds) VALUES (?, ?, ?, ?, ?)"
-  );
-  const updateSongLatest = db.prepare("UPDATE songs SET latest_version_id = ?, status = ? WHERE id = ?");
+  db.prepare("DELETE FROM comments").run();
+  db.prepare("DELETE FROM versions").run();
+  db.prepare("DELETE FROM songs").run();
+  db.prepare("DELETE FROM workspace_members").run();
+  db.prepare("DELETE FROM workspaces").run();
+  db.prepare("DELETE FROM users WHERE handle != ?").run(adminSeed.handle);
+}
 
-  const userIds = new Map<string, number>();
+function ensureAdminAccount(db: Database.Database) {
+  const existing = db.prepare("SELECT id, password_hash FROM users WHERE handle = ?").get(adminSeed.handle) as
+    | { id: number; password_hash: string | null }
+    | undefined;
 
-  for (const account of accountsSeed) {
-    const result = insertUser.run(account.name, account.role, account.email, account.handle);
-    userIds.set(account.handle, Number(result.lastInsertRowid));
-  }
-
-  const workspaceResult = insertWorkspace.run(songSeed.workspace.slug, songSeed.workspace.name, songSeed.workspace.genre);
-  const workspaceId = Number(workspaceResult.lastInsertRowid);
-
-  for (const account of accountsSeed) {
-    insertMembership.run(workspaceId, userIds.get(account.handle));
-  }
-
-  const songResult = insertSong.run(
-    workspaceId,
-    songSeed.song.slug,
-    songSeed.song.name,
-    songSeed.versions[0].status,
-    songSeed.song.note,
-    songSeed.song.bpm,
-    songSeed.song.key
-  );
-  const songId = Number(songResult.lastInsertRowid);
-
-  let latestVersionId = 0;
-
-  for (const version of songSeed.versions) {
-    const versionResult = insertVersion.run(
-      songId,
-      version.fileName,
-      userIds.get(version.uploadedByHandle),
-      version.uploadedAt,
-      version.status,
-      version.summary,
-      version.durationSeconds,
-      null,
-      null
+  if (!existing) {
+    db.prepare("INSERT INTO users (name, role, email, handle, password_hash) VALUES (?, ?, ?, ?, ?)").run(
+      adminSeed.name,
+      adminSeed.role,
+      adminSeed.email,
+      adminSeed.handle,
+      hashPassword(adminSeed.password)
     );
-    const versionId = Number(versionResult.lastInsertRowid);
-
-    if (!latestVersionId) {
-      latestVersionId = versionId;
-    }
-
-    for (const comment of version.comments) {
-      insertComment.run(
-        versionId,
-        userIds.get(comment.authorHandle),
-        comment.postedAt,
-        comment.body,
-        comment.timestampSeconds ?? null
-      );
-    }
+    return;
   }
 
-  updateSongLatest.run(latestVersionId, songSeed.versions[0].status, songId);
+  db.prepare("UPDATE users SET name = ?, role = ?, email = ? WHERE id = ?").run(
+    adminSeed.name,
+    adminSeed.role,
+    adminSeed.email,
+    existing.id
+  );
+
+  if (!existing.password_hash) {
+    db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(hashPassword(adminSeed.password), existing.id);
+  }
 }
 
 function formatRelativeTime(value: string) {
@@ -326,19 +205,51 @@ function formatTimestamp(seconds: number | null) {
   return formatDuration(seconds);
 }
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "item";
+}
+
+function createUniqueWorkspaceSlug(db: Database.Database, name: string) {
+  const baseSlug = slugify(name);
+  let slug = baseSlug;
+  let suffix = 2;
+
+  while (db.prepare("SELECT 1 FROM workspaces WHERE slug = ?").get(slug)) {
+    slug = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+
+  return slug;
+}
+
+function createUniqueSongSlug(db: Database.Database, workspaceId: number, name: string) {
+  const baseSlug = slugify(name);
+  let slug = baseSlug;
+  let suffix = 2;
+
+  while (db.prepare("SELECT 1 FROM songs WHERE workspace_id = ? AND slug = ?").get(workspaceId, slug)) {
+    slug = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+
+  return slug;
+}
+
 function getMembersForWorkspace(workspaceId: number) {
   const db = getDb();
-  const rows = db
+  return db
     .prepare(
-      `SELECT users.id, users.name, users.role, users.email, users.handle
+      `SELECT users.id, users.name, users.role, users.email, users.handle, workspace_members.role AS workspace_role
        FROM workspace_members
        INNER JOIN users ON users.id = workspace_members.user_id
        WHERE workspace_members.workspace_id = ?
        ORDER BY users.id`
     )
-    .all(workspaceId) as Account[];
-
-  return rows;
+    .all(workspaceId) as (Account & { workspace_role: string })[];
 }
 
 function getCommentsForVersion(versionId: number) {
@@ -399,7 +310,8 @@ function getVersionsForSong(songId: number) {
     summary: row.summary,
     duration: formatDuration(row.duration_seconds),
     audioUrl: row.file_path ? `/api/audio/${row.id}` : null,
-    comments: getCommentsForVersion(row.id)
+    comments: getCommentsForVersion(row.id),
+    approvals: getApprovalsForVersion(row.id)
   }));
 }
 
@@ -467,7 +379,7 @@ function getActivityForWorkspace(workspaceId: number) {
        INNER JOIN users ON users.id = versions.uploaded_by_user_id
        WHERE songs.workspace_id = ?
        ORDER BY versions.created_at DESC, versions.id DESC
-       LIMIT 3`
+       LIMIT 4`
     )
     .all(workspaceId) as Array<{ created_at: string; user_name: string; file_name: string; song_name: string }>;
   const commentRows = db
@@ -479,19 +391,17 @@ function getActivityForWorkspace(workspaceId: number) {
        INNER JOIN users ON users.id = comments.user_id
        WHERE songs.workspace_id = ?
        ORDER BY comments.created_at DESC, comments.id DESC
-       LIMIT 3`
+       LIMIT 4`
     )
     .all(workspaceId) as Array<{ created_at: string; user_name: string; song_name: string; body: string }>;
 
-  const items = [
+  return [
     ...versionRows.map((row) => ({ created_at: row.created_at, text: `${row.user_name} uploaded ${row.file_name} to ${row.song_name}` })),
     ...commentRows.map((row) => ({ created_at: row.created_at, text: `${row.user_name} commented on ${row.song_name}: ${row.body}` }))
   ]
     .sort((left, right) => right.created_at.localeCompare(left.created_at))
-    .slice(0, 4)
+    .slice(0, 6)
     .map((item) => item.text);
-
-  return items;
 }
 
 function buildWorkspaceFromRow(row: { id: number; slug: string; name: string; genre: string }) {
@@ -506,9 +416,29 @@ function buildWorkspaceFromRow(row: { id: number; slug: string; name: string; ge
   } satisfies Workspace;
 }
 
+function buildUserWorkspaces(userId: number) {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT workspaces.id, workspaces.slug, workspaces.name, workspaces.genre
+       FROM workspace_members
+       INNER JOIN workspaces ON workspaces.id = workspace_members.workspace_id
+       WHERE workspace_members.user_id = ?
+       ORDER BY workspaces.id DESC`
+    )
+    .all(userId) as Array<{ id: number; slug: string; name: string; genre: string }>;
+
+  return rows.map(buildWorkspaceFromRow);
+}
+
 export function listAccounts() {
   const db = getDb();
   return db.prepare("SELECT id, name, role, email, handle FROM users ORDER BY id").all() as Account[];
+}
+
+export function getUserById(id: number) {
+  const db = getDb();
+  return db.prepare("SELECT id, name, role, email, handle FROM users WHERE id = ?").get(id) as Account | undefined;
 }
 
 export function getUserByHandle(handle: string) {
@@ -516,13 +446,56 @@ export function getUserByHandle(handle: string) {
   return db.prepare("SELECT id, name, role, email, handle FROM users WHERE handle = ?").get(handle) as Account | undefined;
 }
 
-export function getDemoUser() {
-  return getUserByHandle("ghostfrogcherry") ?? listAccounts()[0];
+export function getUserByEmail(email: string) {
+  const db = getDb();
+  return db.prepare("SELECT id, name, role, email, handle FROM users WHERE email = ?").get(email) as Account | undefined;
+}
+
+export function getUserForSignIn(identifier: string) {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT id, name, role, email, handle, password_hash
+       FROM users
+       WHERE lower(handle) = lower(?) OR lower(email) = lower(?)
+       LIMIT 1`
+    )
+    .get(identifier, identifier) as
+    | (Account & { password_hash: string | null })
+    | undefined;
+}
+
+export function createUserAccount(input: { name: string; email: string; handle: string; password: string }) {
+  const db = getDb();
+  const existing = db
+    .prepare("SELECT id FROM users WHERE lower(email) = lower(?) OR lower(handle) = lower(?)")
+    .get(input.email, input.handle) as { id: number } | undefined;
+
+  if (existing) {
+    return { error: "An account with that email or handle already exists." } as const;
+  }
+
+  const result = db.prepare("INSERT INTO users (name, role, email, handle, password_hash) VALUES (?, ?, ?, ?, ?)").run(
+    input.name,
+    "Member",
+    input.email,
+    input.handle,
+    hashPassword(input.password)
+  );
+  const userId = Number(result.lastInsertRowid);
+
+  createWorkspace({
+    userId,
+    name: `${input.name.split(" ")[0] || input.name}'s First Album`,
+    genre: "Album in progress"
+  });
+
+  return { userId } as const;
 }
 
 export function listWorkspaces() {
   const db = getDb();
-  const rows = db.prepare("SELECT id, slug, name, genre FROM workspaces ORDER BY id").all() as Array<{
+  const rows = db.prepare("SELECT id, slug, name, genre FROM workspaces ORDER BY id DESC").all() as Array<{
     id: number;
     slug: string;
     name: string;
@@ -530,6 +503,16 @@ export function listWorkspaces() {
   }>;
 
   return rows.map(buildWorkspaceFromRow);
+}
+
+export function listUserWorkspaces(userId: number) {
+  return buildUserWorkspaces(userId);
+}
+
+export function listUserActivity(userId: number) {
+  return buildUserWorkspaces(userId)
+    .flatMap((workspace) => workspace.activity.map((text) => ({ workspace: workspace.name, text })))
+    .slice(0, 10);
 }
 
 export function getWorkspace(slug: string) {
@@ -540,6 +523,20 @@ export function getWorkspace(slug: string) {
     name: string;
     genre: string;
   } | undefined;
+
+  return row ? buildWorkspaceFromRow(row) : undefined;
+}
+
+export function getWorkspaceForUser(userId: number, slug: string) {
+  const db = getDb();
+  const row = db
+    .prepare(
+      `SELECT workspaces.id, workspaces.slug, workspaces.name, workspaces.genre
+       FROM workspace_members
+       INNER JOIN workspaces ON workspaces.id = workspace_members.workspace_id
+       WHERE workspace_members.user_id = ? AND workspaces.slug = ?`
+    )
+    .get(userId, slug) as { id: number; slug: string; name: string; genre: string } | undefined;
 
   return row ? buildWorkspaceFromRow(row) : undefined;
 }
@@ -587,16 +584,105 @@ export function getSong(workspaceSlug: string, songSlug: string) {
   return { workspace, song, currentVersion };
 }
 
+export function getSongForUser(userId: number, workspaceSlug: string, songSlug: string) {
+  const workspace = getWorkspaceForUser(userId, workspaceSlug);
+
+  if (!workspace) {
+    return undefined;
+  }
+
+  const song = workspace.songs.find((entry) => entry.slug === songSlug);
+
+  if (!song) {
+    return undefined;
+  }
+
+  const currentVersion = song.versions.find((version) => version.id === song.latestVersionId) ?? song.versions[0];
+  return { workspace, song, currentVersion };
+}
+
+export function createWorkspace(input: { userId: number; name: string; genre?: string }) {
+  const db = getDb();
+  const name = input.name.trim();
+
+  if (!name) {
+    return undefined;
+  }
+
+  const slug = createUniqueWorkspaceSlug(db, name);
+  const result = db.prepare("INSERT INTO workspaces (slug, name, genre) VALUES (?, ?, ?)").run(
+    slug,
+    name,
+    input.genre?.trim() || "Album in progress"
+  );
+  const workspaceId = Number(result.lastInsertRowid);
+
+  db.prepare("INSERT INTO workspace_members (workspace_id, user_id) VALUES (?, ?)").run(workspaceId, input.userId);
+
+  return getWorkspace(slug);
+}
+
+export function addWorkspaceMember(workspaceId: number, userId: number, role: string = "member") {
+  const db = getDb();
+  try {
+    db.prepare("INSERT INTO workspace_members (workspace_id, user_id, role) VALUES (?, ?, ?)").run(workspaceId, userId, role);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function updateWorkspaceMemberRole(workspaceId: number, userId: number, role: string) {
+  const db = getDb();
+  db.prepare("UPDATE workspace_members SET role = ? WHERE workspace_id = ? AND user_id = ?").run(role, workspaceId, userId);
+}
+
+export function removeWorkspaceMember(workspaceId: number, userId: number) {
+  const db = getDb();
+  db.prepare("DELETE FROM workspace_members WHERE workspace_id = ? AND user_id = ?").run(workspaceId, userId);
+}
+
+export function createSongRecord(input: { workspaceId: number; name: string; note?: string }) {
+  const db = getDb();
+  const name = input.name.trim();
+
+  if (!name) {
+    return undefined;
+  }
+
+  const slug = createUniqueSongSlug(db, input.workspaceId, name);
+  const result = db
+    .prepare(
+      `INSERT INTO songs (workspace_id, slug, name, status, note, bpm, key_signature, latest_version_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      input.workspaceId,
+      slug,
+      name,
+      "Pending review",
+      input.note?.trim() || "Capture notes, upload a version, and start review.",
+      120,
+      "C major",
+      null
+    );
+
+  return db.prepare("SELECT id, workspace_id, slug, name FROM songs WHERE id = ?").get(Number(result.lastInsertRowid)) as {
+    id: number;
+    workspace_id: number;
+    slug: string;
+    name: string;
+  };
+}
+
 export function getSongById(songId: number) {
   const db = getDb();
-  const row = db.prepare("SELECT id, workspace_id, slug, name FROM songs WHERE id = ?").get(songId) as {
+  return db.prepare("SELECT id, workspace_id, slug, name FROM songs WHERE id = ?").get(songId) as {
     id: number;
     workspace_id: number;
     slug: string;
     name: string;
   } | undefined;
-
-  return row;
 }
 
 export function updateVersionStatus(versionId: number, status: ReviewState) {
@@ -626,6 +712,49 @@ export function createComment(input: { versionId: number; userId: number; body: 
     .run(input.versionId, input.userId, createdAt, input.body, input.timestampSeconds ?? null);
 
   return getComment(Number(result.lastInsertRowid));
+}
+
+export function addVersionApproval(versionId: number, userId: number) {
+  const db = getDb();
+  const approvedAt = new Date().toISOString();
+  db.prepare(
+    "INSERT OR REPLACE INTO version_approvals (version_id, user_id, approved_at) VALUES (?, ?, ?)"
+  ).run(versionId, userId, approvedAt);
+}
+
+export function removeVersionApproval(versionId: number, userId: number) {
+  const db = getDb();
+  db.prepare("DELETE FROM version_approvals WHERE version_id = ? AND user_id = ?").run(versionId, userId);
+}
+
+export function removeAllApprovalsForVersion(versionId: number) {
+  const db = getDb();
+  db.prepare("DELETE FROM version_approvals WHERE version_id = ?").run(versionId);
+}
+
+export function getApprovalsForVersion(versionId: number) {
+  const db = getDb();
+  const rows = db
+    .prepare(
+      `SELECT version_id AS versionId, user_id AS userId, approved_at AS approvedAt
+       FROM version_approvals
+       WHERE version_id = ?`
+    )
+    .all(versionId) as { versionId: number; userId: number; approvedAt: string }[];
+  return rows;
+}
+
+export function getWorkspaceMembers(workspaceId: number) {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT users.id, users.name, users.role, users.email, users.handle, workspace_members.role AS workspace_role
+       FROM workspace_members
+       INNER JOIN users ON users.id = workspace_members.user_id
+       WHERE workspace_members.workspace_id = ?
+       ORDER BY users.id`
+    )
+    .all(workspaceId) as (Account & { workspace_role: string })[];
 }
 
 export function createVersion(input: {
@@ -698,18 +827,17 @@ export function getVersion(versionId: number) {
     summary: row.summary,
     duration: formatDuration(row.duration_seconds),
     audioUrl: row.file_path ? `/api/audio/${row.id}` : null,
-    comments: getCommentsForVersion(row.id)
+    comments: getCommentsForVersion(row.id),
+    approvals: getApprovalsForVersion(row.id)
   } satisfies Version;
 }
 
 export function getAudioFilePath(versionId: number) {
   const db = getDb();
-  const row = db.prepare("SELECT file_path, mime_type FROM versions WHERE id = ?").get(versionId) as {
+  return db.prepare("SELECT file_path, mime_type FROM versions WHERE id = ?").get(versionId) as {
     file_path: string | null;
     mime_type: string | null;
   } | undefined;
-
-  return row;
 }
 
 function getComment(commentId: number) {

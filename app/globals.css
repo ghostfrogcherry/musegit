@@ -1,737 +1,117 @@
-:root {
-  color-scheme: dark;
-  --bg: #0c0a11;
-  --bg-accent: #16111f;
-  --panel: rgba(22, 17, 31, 0.88);
-  --panel-soft: rgba(45, 36, 62, 0.55);
-  --border: rgba(186, 167, 255, 0.18);
-  --text: #f8f5ff;
-  --muted: #b7accf;
-  --purple: #b197fc;
-  --pink: #ff8fab;
-  --green: #81f4bf;
-  --amber: #ffd166;
-  --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+.comparePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-* {
-  box-sizing: border-box;
+.compareControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-html {
-  scroll-behavior: smooth;
+.compareSync {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(177, 151, 252, 0.2), transparent 32%),
-    radial-gradient(circle at top right, rgba(255, 143, 171, 0.16), transparent 28%),
-    linear-gradient(180deg, #09070d 0%, var(--bg) 48%, #151022 100%);
-  color: var(--text);
-  font-family: Arial, Helvetica, sans-serif;
+.compareGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
 }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
+.compareColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+.compareHeader select {
+  width: 100%;
 }
 
-ul {
-  margin: 0;
-  padding-left: 1.1rem;
-}
-
-.shell {
-  width: min(1180px, calc(100% - 2rem));
-  margin: 0 auto;
-  padding: 2rem 0 4rem;
-}
-
-.panel {
-  border: 1px solid var(--border);
-  border-radius: 28px;
+.compareWaveform {
+  height: 60px;
   background: var(--panel);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(20px);
-}
-
-.softPanel {
-  background: var(--panel-soft);
-  box-shadow: none;
-}
-
-.hero {
-  display: grid;
-  gap: 1.5rem;
-  padding: 2rem;
-  align-items: start;
-}
-
-.eyebrow {
-  margin: 0 0 0.75rem;
-  color: var(--purple);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.hero h1,
-.workspace h2,
-.specPanel h2 {
-  margin: 0;
-  line-height: 1;
-}
-
-.hero h1 {
-  max-width: 12ch;
-  font-size: clamp(3rem, 8vw, 6rem);
-}
-
-.lede {
-  max-width: 62ch;
-  color: var(--muted);
-  font-size: 1.05rem;
-  line-height: 1.7;
-}
-
-.ctaRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-
-.primaryButton,
-.secondaryButton {
-  padding: 0.95rem 1.2rem;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  font-weight: 700;
-}
-
-.primaryButton {
-  background: linear-gradient(135deg, var(--purple), var(--pink));
-  color: #120d1b;
-}
-
-.secondaryButton {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.heroCard {
-  padding: 1.5rem;
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
-  border: 1px solid rgba(255, 255, 255, 0.09);
-}
-
-.heroCardLabel,
-.heroCardMeta,
-.sectionHeading span,
-.versionName,
-.songNote,
-.workspaceMeta {
-  color: var(--muted);
-}
-
-.heroCard h2 {
-  margin: 0.35rem 0;
-  font-size: 2rem;
-}
-
-.gridThree,
-.workspaceGrid,
-.specGrid {
-  display: grid;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.featureCard,
-.songList,
-.activityPanel,
-.specPanel {
-  padding: 1.3rem;
-}
-
-.featureCard h2,
-.sectionHeading h3,
-.specPanel h3,
-.songItem h4 {
-  margin: 0;
-}
-
-.featureCard p,
-.songNote,
-.activityList,
-.specPanel li {
-  line-height: 1.6;
-}
-
-.workspace {
-  margin-top: 1rem;
-}
-
-.workspaceHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: end;
-  margin: 2rem 0 1rem;
-}
-
-.workspaceMeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  padding: 0.8rem 1rem;
-}
-
-.sectionHeading {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: baseline;
-  margin-bottom: 1rem;
-}
-
-.songItems {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.songItem {
-  padding: 1rem;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.songTopRow {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
-}
-
-.status {
-  padding: 0.35rem 0.7rem;
-  border-radius: 999px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.status-approved {
-  background: rgba(129, 244, 191, 0.14);
-  color: var(--green);
-}
-
-.status-changes-requested {
-  background: rgba(255, 209, 102, 0.14);
-  color: var(--amber);
-}
-
-.status-pending-review {
-  background: rgba(177, 151, 252, 0.15);
-  color: var(--purple);
-}
-
-.activityList {
-  display: grid;
-  gap: 0.8rem;
-}
-
-.activityList li::marker {
-  color: var(--pink);
-}
-
-.specPanel {
-  margin-top: 1rem;
-}
-
-.topSpace {
-  margin-top: 1rem;
-}
-
-.inlineButton {
-  display: inline-flex;
-  width: fit-content;
-}
-
-.textLeft {
-  text-align: left;
-}
-
-.buttonReset {
-  cursor: pointer;
-}
-
-.authShell,
-.appShell {
-  width: min(1180px, calc(100% - 2rem));
-  margin: 0 auto;
-  padding: 2rem 0 4rem;
-}
-
-.authPanel,
-.workspaceHero,
-.workspaceDirectory,
-.detailPanel,
-.statCard {
-  padding: 1.5rem;
-}
-
-.authTitle,
-.workspaceTitle,
-.statCard h2,
-.workspaceDirectory h2,
-.detailPanel h2 {
-  margin: 0;
-}
-
-.authGrid,
-.overviewGrid,
-.directoryGrid,
-.detailGrid {
-  display: grid;
-  gap: 1rem;
-  margin-top: 1.25rem;
-}
-
-.authCard {
-  padding: 1.25rem;
-}
-
-.authLabel,
-.appSubhead,
-.workspaceFacts,
-.songFooterMeta,
-.memberRow span,
-.authCard p {
-  color: var(--muted);
-}
-
-.authLabel {
-  margin: 0 0 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
-.authList,
-.workspaceFacts,
-.memberList {
-  display: grid;
-  gap: 0.8rem;
-  padding-left: 1.1rem;
-}
-
-.authList li,
-.workspaceFacts li {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.appHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
-  margin-bottom: 1.25rem;
-}
-
-.brandRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.brandLogo {
   border-radius: 8px;
-}
-
-.heroLogo {
-  margin-bottom: 1rem;
-}
-
-.heroLogo img {
-  border-radius: 16px;
-}
-
-.brandLink {
-  display: inline-block;
-  font-size: 1.35rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-
-.appSubhead {
-  margin: 0.35rem 0 0;
-}
-
-.appHeaderActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.userChip {
-  display: grid;
-  gap: 0.15rem;
-  padding: 0.85rem 1rem;
-}
-
-.appMain {
-  display: grid;
-  gap: 1rem;
-}
-
-.statCard {
-  min-height: 10rem;
-}
-
-.workspaceCard {
-  padding: 1.2rem;
-  border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.workspaceCard h3 {
-  margin: 0;
-}
-
-.songLink {
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.songLink:hover {
-  color: var(--purple);
-}
-
-.songFooterMeta,
-.memberRow {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
-}
-
-.songFooterMeta {
-  margin-top: 0.75rem;
-  font-size: 0.92rem;
-}
-
-.stackColumn {
-  display: grid;
-  gap: 1rem;
-}
-
-.memberList {
-  list-style: none;
-  padding-left: 0;
-}
-
-.memberRow {
-  padding: 0.9rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.memberRow:last-child {
-  border-bottom: 0;
-}
-
-.songDetailGrid,
-.songLowerGrid {
-  align-items: start;
-}
-
-.currentVersionCard,
-.timelineItem,
-.commentCard {
-  padding: 1rem;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.currentVersionSummary,
-.commentCard p,
-.timelineMeta {
-  line-height: 1.6;
-}
-
-.versionBadgeRow,
-.commentHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
-}
-
-.versionPill {
-  display: inline-flex;
-  width: fit-content;
-  padding: 0.35rem 0.7rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--muted);
-}
-
-.metaPairGrid {
-  display: grid;
-  gap: 1rem;
-}
-
-.metaBlock {
-  padding: 1rem;
-}
-
-.reviewActions,
-.versionTimeline,
-.commentList {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.reviewButton {
-  padding: 0.95rem 1rem;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  text-align: left;
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.reviewButtonActive {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.reviewButton.approve {
-  border-color: rgba(129, 244, 191, 0.22);
-}
-
-.reviewButton.request {
-  border-color: rgba(255, 209, 102, 0.25);
-}
-
-.reviewButton.pending {
-  border-color: rgba(177, 151, 252, 0.24);
-}
-
-.timelineCurrent {
-  border-color: rgba(177, 151, 252, 0.35);
-  box-shadow: inset 0 0 0 1px rgba(177, 151, 252, 0.12);
-}
-
-.timelineMeta,
-.commentHeader span,
-.commentTimestamp {
-  color: var(--muted);
-}
-
-.commentTimestamp {
-  margin: 0.35rem 0 0;
-  font-size: 0.9rem;
-}
-
-.uploadComposer {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.fieldLabel {
-  color: var(--muted);
-  font-size: 0.86rem;
-  font-weight: 700;
-}
-
-.fieldInput {
-  width: 100%;
-  padding: 0.9rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
-}
-
-.fieldTextarea {
-  min-height: 7rem;
-  resize: vertical;
-}
-
-.audioPlayer {
-  width: 100%;
-}
-
-.formError {
-  margin: 0;
-  color: #ff9aa8;
-}
-
-.timestampButton {
-  display: inline-flex;
-  width: fit-content;
-  margin-top: 0.5rem;
-  padding: 0.35rem 0.65rem;
-  border-radius: 999px;
-  background: rgba(177, 151, 252, 0.14);
-  color: var(--purple);
-}
-
-.waveformPlayer {
-  display: grid;
-  gap: 0.5rem;
-  width: 100%;
-}
-
-.waveformContainer {
-  width: 100%;
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.waveformCanvas {
-  width: 100%;
-  height: 80px;
-  cursor: pointer;
-}
-
-.waveformLoading {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 80px;
-  color: var(--muted);
-}
-
-.waveformControls {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.playButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--purple), var(--pink));
-  color: #120d1b;
-  font-size: 1rem;
-}
-
-.timeCurrent,
-.timeDuration {
-  font-variant-numeric: tabular-nums;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.timeSeparator {
-  color: var(--muted);
-}
-
-.timestampMarkers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.markersLabel {
   font-size: 0.8rem;
   color: var(--muted);
 }
 
-.markerButton {
-  display: inline-flex;
-  width: fit-content;
-  padding: 0.35rem 0.6rem;
-  border-radius: 999px;
-  background: rgba(177, 151, 252, 0.12);
-  color: var(--purple);
+.compareMeta {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.compareSummary {
   font-size: 0.85rem;
+  color: var(--text);
 }
 
-@media (min-width: 760px) {
-  .hero {
-    grid-template-columns: 1.45fr 0.85fr;
-    padding: 2.5rem;
-  }
-
-  .gridThree {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .workspaceGrid,
-  .specGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .authGrid,
-  .detailGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .overviewGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .directoryGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .metaPairGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 600px) {
+  .compareGrid {
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 759px) {
-  .shell {
-    width: min(100% - 1rem, 100%);
-  }
+.membersList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
 
-  .hero,
-  .featureCard,
-  .songList,
-  .activityPanel,
-  .specPanel {
-    border-radius: 22px;
-  }
+.memberRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--bg-accent);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
 
-  .workspaceHeader,
-  .sectionHeading,
-  .songTopRow,
-  .appHeader,
-  .appHeaderActions,
-  .songFooterMeta,
-  .memberRow,
-  .versionBadgeRow,
-  .commentHeader {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+.memberInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
 
-  .hero h1 {
-    max-width: none;
-  }
+.memberInfo strong {
+  font-size: 0.95rem;
+}
+
+.memberInfo span {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.memberBadge {
+  background: var(--purple);
+  color: var(--bg);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.memberActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.inviteRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.inviteRow input {
+  flex: 1;
 }

@@ -9,6 +9,11 @@ type RouteProps = {
 export async function POST(request: Request, { params }: RouteProps) {
   const { versionId } = await params;
   const user = await getCurrentUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = (await request.json()) as { body?: string; timestampSeconds?: number };
 
   if (!body.body?.trim()) {
